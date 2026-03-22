@@ -1,0 +1,260 @@
+include "global.tbh"
+
+'sock 11: tibbit 10 
+'sock 9: tibbit 54 name T54_S9
+'sock 1: tibbit 03_1 name Relay1_2
+'sock 3: tibbit 03_1 name T03_1_S3
+'sock 7: tibbit 54 name T54_S7
+'sock 5: tibbit 03_1 name T03_1_S5
+'sock 2: tibbit 21 
+'sock 4: tibbit 21 
+'sock 6: tibbit 21 
+'sock 8: tibbit 21 
+'sock 10: tibbit 21 
+'sock 12: tibbit 18 
+
+
+
+dim lcd_img_widgets as lcd_img_widget(LCD_IMG_WIDGETS_COUNT)
+dim lcd_text_widgets as lcd_text_widget(LCD_TEXT_WIDGETS_COUNT)
+dim display_current_screen as byte = 0
+
+dim interface_ready(MAX_NUM_INTERFACES) as no_yes
+
+dim TIOS_VERSION as string(30)
+#IF PLATFORM_ID=WM2000 OR PLATFORM_ID=WS1102
+dim MAC_ADDRESS as string(20)=wln.mac
+#ELSE
+dim MAC_ADDRESS as string(20)=net.mac
+#ENDIF
+dim DEVICE_NAME as string(50)="Tdoor"
+
+dim current_interface as pl_sock_interfaces
+
+dim APP_TIMEZONE as en_td_timezones
+dim APP_LATITUDE as float
+dim APP_LONGITUDE as float
+dim APP_LOGGING as string(10)
+
+dim device_net_ip as string(16)
+dim device_net_mask as string(16)
+dim device_net_gateway as string(16)
+dim net_dhcp_enabled as boolean
+
+dim DNS_socket as byte
+
+dim SNTP_socket as byte
+dim SNTP_SERVER as string(16)
+
+dim upgrade_socket_http as byte=255
+
+dim UPGRADE_URL as string
+
+dim var_poll_timer as dword
+dim TDoor_Master as float=0.0
+dim TCP_Port as float=0.0
+dim T54_S9_L1 as boolean=1
+dim T54_S9_L2 as boolean=1
+dim T54_S9_L3 as boolean=1
+dim T54_S9_L4 as boolean=1
+dim T03_1_S1_L1 as boolean=1
+dim T03_1_S1_L2 as boolean=1
+dim T03_1_S3_L1 as boolean=1
+dim T03_1_S3_L2 as boolean=1
+dim T54_S7_L1 as boolean=1
+dim T54_S7_L2 as boolean=1
+dim T54_S7_L3 as boolean=1
+dim T54_S7_L4 as boolean=1
+dim T03_1_S5_L1 as boolean=1
+dim T03_1_S5_L2 as boolean=1
+dim stg1 as string(80)=""
+dim DN as string(8)=""
+dim ON as string(8)=""
+dim PW as string(16)="^"
+dim t1 as dword=0
+dim NETCP as float=1.0
+dim NETIP as string(16)="10.80.0.10"
+dim NETNM as string(16)="255.255.255.0"
+dim NETGW as string(16)="10.80.0.1"
+
+dim timer_t1 as dword=0
+dim timer_t1_CURRENT_MS as dword=0
+dim timer_t1_repeat as boolean=false
+
+
+dim S1_SOCK_NUM as byte
+
+
+sub on_sys_init()
+    boot()
+end sub
+
+
+sub on_sys_timer()
+
+dim sys_timercountms as dword = sys.timercountms
+#IF SYS_VER <> 1000 AND WATCHDOG_ENABLED
+    sys.wdreset()
+#ENDIF
+
+    dhcp_proc_timer()
+	dns_proc_timer()
+    http_proc_timer()
+
+http_server_proc_timer()
+	sntp_proc_timer()
+
+    if sys_timercountms >= var_poll_timer then
+        var_poll_timer = sys_timercountms + 1000
+        
+        
+            
+        
+            
+        
+            
+            var_T54_S9_L1_update()
+        
+            
+            var_T54_S9_L2_update()
+        
+            
+            var_T54_S9_L3_update()
+        
+            
+            var_T54_S9_L4_update()
+        
+            
+            var_T03_1_S1_L1_update()
+        
+            
+            var_T03_1_S1_L2_update()
+        
+            
+            var_T03_1_S3_L1_update()
+        
+            
+            var_T03_1_S3_L2_update()
+        
+            
+            var_T54_S7_L1_update()
+        
+            
+            var_T54_S7_L2_update()
+        
+            
+            var_T54_S7_L3_update()
+        
+            
+            var_T54_S7_L4_update()
+        
+            
+            var_T03_1_S5_L1_update()
+        
+            
+            var_T03_1_S5_L2_update()
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+    end if
+
+timer_t1_update()
+
+end sub
+
+
+sub on_sock_data_arrival()
+    dhcp_proc_data()
+	dns_proc_data()
+
+    http_proc_data()
+
+http_server_proc_sock_data()
+	sntp_proc_data()
+
+    net_cmd_proc(CMD_MODE_UDP,error_mode)
+            
+
+end sub
+
+
+sub on_net_link_change()
+
+    if net.linkstate=PL_NET_LINKSTAT_NOLINK then
+        interface_set(PL_SOCK_INTERFACE_NET,NO)
+        
+    else
+        if net_dhcp_enabled = false then
+            interface_set(PL_SOCK_INTERFACE_NET,YES)
+        end if
+    end if
+
+end sub
+
+
+sub on_sock_event(newstate as pl_sock_state,newstatesimple as pl_sock_state_simple)
+
+    http_sock_state_update(newstatesimple)
+
+http_server_proc_sock_event(newstate,newstatesimple)
+	sntp_proc_sock_event(newstate)
+
+if sock.num=upgrade_socket_http AND newstatesimple=PL_SSTS_CLOSED then
+    while sock.varlen <> 0
+        if upload_started=false then
+            device_firmware_upload_async(PL_FW_UPG_HTTP, 0)
+            upload_started=true
+        else
+            device_firmware_upload_update()
+        end if
+    wend
+    upgrade_socket_http=255
+end if
+
+end sub
+
+
+sub on_sock_data_sent()
+
+    http_on_sock_data_sent()
+
+http_server_proc_sock_data_sent()
+
+#IFDEF TBL_MAX_NUM_TABLES
+tables_web_proc_sock_data_sent()
+#ENDIF
+
+end sub
+
+
+sub on_sock_postdata()
+
+if sock.httprqstring="" then
+    if upload_started=false then
+        device_firmware_upload_async(PL_FW_UPG_HTTP, 0)
+        upload_started=true
+    else
+        device_firmware_upload_update()
+    end if
+else
+    sock.getdata(255)
+end if
+
+
+end sub
+

@@ -1,0 +1,3035 @@
+include "global.tbh"
+
+
+dim lcd_logs(29) as string(64)
+dim lcd_log_index as byte=0
+
+
+
+sub callback_stg_error(byref stg_name_or_num as string,index as byte,status as en_stg_status_codes)
+    
+end sub
+        
+
+sub callback_stg_pre_get(byref stg_name_or_num as string,index as byte,byref stg_value as string)
+    
+end sub
+        
+
+sub callback_stg_post_set(byref stg_name_or_num as string, index as byte,byref stg_value as string)
+    
+    
+    if stg_name_or_num="stg1" then
+    dim tmp_val as string=stg_value
+    var_stg1_update_completed(tmp_val)
+    end if
+    
+    if stg_name_or_num="DN" then
+    dim tmp_val as string=stg_value
+    var_DN_update_completed(tmp_val)
+    end if
+    
+    if stg_name_or_num="ON" then
+    dim tmp_val as string=stg_value
+    var_ON_update_completed(tmp_val)
+    end if
+    
+    if stg_name_or_num="PW" then
+    dim tmp_val as string=stg_value
+    var_PW_update_completed(tmp_val)
+    end if
+    
+    if stg_name_or_num="NETCP" then
+    dim tmp_val as float=string_to_float(stg_value)
+    var_NETCP_update_completed(tmp_val)
+    end if
+    
+    if stg_name_or_num="NETIP" then
+    dim tmp_val as string=stg_value
+    var_NETIP_update_completed(tmp_val)
+    end if
+    
+    if stg_name_or_num="NETNM" then
+    dim tmp_val as string=stg_value
+    var_NETNM_update_completed(tmp_val)
+    end if
+    
+    if stg_name_or_num="NETGW" then
+    dim tmp_val as string=stg_value
+    var_NETGW_update_completed(tmp_val)
+    end if
+end sub
+        
+
+function callback_stg_vm_read(address as word) as byte
+    
+end function
+        
+
+sub callback_stg_vm_write(data_to_write as byte, address as word)
+    
+end sub
+
+sub callback_tbl_error(status as en_tbl_status_codes)
+    
+end sub
+        
+
+function callback_tbl_fail_to_open(byref filename as string, status as pl_fd_status_codes, filenum as byte) as no_yes
+    
+end function
+        
+
+sub callback_tbl_field_error(byref file_name as string,byref field_name as string,tbl_result as en_tbl_status_codes)
+    
+end sub
+        
+
+sub callback_tbl_modified(byref file_name as string, modified_operation as en_tbl_modified_operation)
+    
+end sub
+        
+
+const MAX_NUM_ROWS = 1
+
+sub tbl_value_to_binstr(byref value as string, byref bin_value as string, field_type as en_tbl_field_types)
+    dim w1,w2,w3,w4 as word
+    select case field_type
+    case EN_TBL_FIELD_BYTE:
+        bin_value=chr(val(value))
+    case EN_TBL_FIELD_WORD:
+        w1=val(value)/256
+        w2=val(value) mod 256
+        bin_value=chr(w1)+chr(w2)
+    case EN_TBL_FIELD_TIMESTAMP,EN_TBL_FIELD_DWORD:
+        w2=lval(value)/65536
+        w3=lval(value) mod 65536
+        bin_value=chr(w2/256)
+        bin_value=bin_value+chr(w2 mod 256)
+        bin_value=bin_value+chr(w3/256)
+        bin_value=bin_value+chr(w3 mod 256)
+    case EN_TBL_FIELD_TIME,EN_TBL_FIELD_FLOAT:
+        dim tmp_f as float=string_to_float(value)
+        bintostr(bin_value,tmp_f, 4)
+    case else:
+        bin_value=value
+    end select
+end sub
+
+function tbl_all_delete_row(byref table as string, row as word) as string
+    if tbl_all_is_in_memory(table)=YES then
+        tbl_static_delete_row(table, row)
+    else
+        tbl_web_delete_row(table, row)
+    end if
+end function
+
+function tbl_sort_compare(byref a as string, byref b as string, field_type as en_tbl_field_types) as short
+    dim a1 as dword=0
+    dim b1 as dword=0
+    dim w1,w2,w3 as word
+    dim d as dword
+    select case field_type
+        case EN_TBL_FIELD_BYTE:
+            a1=asc(a)
+            b1=asc(b)
+        case EN_TBL_FIELD_WORD:
+            a1=asc(left(a,1))*256+asc(mid(a,2,1))
+            b1=asc(left(b,1))*256+asc(mid(b,2,1))
+        case EN_TBL_FIELD_DWORD,EN_TBL_FIELD_TIMESTAMP:
+            w2=asc(left(a,1))*256+asc(mid(a,2,1))
+            w3=asc(mid(a,3,1))*256+asc(mid(a,4,1))
+            a1=w2*65536+w3
+            w2=asc(left(b,1))*256+asc(mid(b,2,1))
+            w3=asc(mid(b,3,1))*256+asc(mid(b,4,1))
+            b1=w2*65536+w3
+        end select
+    select case field_type
+        case EN_TBL_FIELD_BYTE,EN_TBL_FIELD_WORD,EN_TBL_FIELD_DWORD,EN_TBL_FIELD_TIMESTAMP:
+            if a1>b1 then
+                tbl_sort_compare=1
+            else if a1=b1 then
+                tbl_sort_compare=0
+            else
+                tbl_sort_compare=-1
+            end if
+        case EN_TBL_FIELD_FLOAT,EN_TBL_FIELD_TIME:
+            dim a1 as float=0
+            dim b1 as float=0
+            strtobin(a1,a,4)
+            strtobin(b1,b,4)
+            if a1>b1 then
+                tbl_sort_compare=1
+            else if a1=b1 then
+                tbl_sort_compare=0
+            else
+                tbl_sort_compare=-1
+            end if
+        case else:
+            tbl_sort_compare=0
+    end select
+end function
+
+function tbl_record_find_sorted(
+    record_type as en_tbl_record_states,                        'If the search includes the records that are marked as deleted.
+    byref search_data as string(50),                                'Searching criteria data.
+    table_name as string,
+    byref field_name as string(20),                                 'Searching criteria name.
+    byref rec_num as word,                                      'Starting record number, also returns the first found record number
+    wraparound as boolean,                                      'Wrap around
+    find_method as pl_fd_find_modes) as en_tbl_status_codes     'find method (equal, greater, lesser, etc.)
+
+    if tbl_all_is_in_memory(table_name)=NO then
+        tbl_select(table_name, table_name)
+        if (find_method=PL_FD_FIND_EQUAL OR find_method=PL_FD_FIND_NOT_EQUAL) then
+            rec_num=rec_num+1
+            tbl_record_find(record_type,search_data,field_name,rec_num,wraparound,find_method)
+            exit function
+        end if
+    end if
+
+    dim num_records as word=0
+    dim count as word = 0
+
+    dim search_val as string(50) = ""
+    dim tmp_rec as word=0
+    dim index as integer = -1
+    'sort
+    dim values(MAX_NUM_ROWS) as string(4)
+    dim indices(MAX_NUM_ROWS) as word
+    dim is_flash_table as boolean = true
+    dim table_index_offset as word = 1  'Default for flash tables
+    dim i as integer
+    dim key as string(4)
+    dim key2 as word
+    dim j as integer
+    i=0
+    count=0
+
+    dim ctable_info as tbl_type
+    tbl_all_get_table_info(table_name, ctable_info)
+    dim field_type as en_tbl_field_types=EN_TBL_FIELD_FLOAT
+    dim field_metadata as tbl_field_type
+
+    tbl_all_get_num_records(num_records,table_name,NO)
+    if num_records=0 then
+        rec_num=0
+        exit function
+    end if
+    dim num_of_fld as byte = tbl_all_get_num_fields(table_name)
+    for j = 0 to num_of_fld-1
+        tbl_all_get_field_info(table_name,j,field_metadata)
+        if field_metadata.field_name=field_name then
+            field_type=field_metadata.field_type
+            tbl_value_to_binstr(search_data,search_val,field_type)
+            exit for
+        end if
+    next j
+    
+    ' Final safety check - if we still have no records, exit
+    if num_records = 0 then
+        rec_num = 0
+        exit function
+    end if
+
+    if (find_method=PL_FD_FIND_EQUAL OR find_method=PL_FD_FIND_NOT_EQUAL) then
+        count = 0
+        i=0
+        tmp_rec=-1
+        while count < num_records
+            if tbl_all_get_field_value(table_name,i+table_index_offset, field_name, search_val, YES)=EN_TBL_STATUS_OK then
+                if find_method=PL_FD_FIND_EQUAL then
+                    if search_val=search_data then
+                        tmp_rec=tmp_rec+1
+                    end if
+                else if find_method=PL_FD_FIND_NOT_EQUAL then
+                    if search_val<>search_data then
+                        tmp_rec=tmp_rec+1
+                    end if
+                end if
+                if tmp_rec=rec_num then
+                    rec_num=count+1
+                    exit function
+                end if
+                count=count+1
+            end if
+            i=i+1
+        wend
+    end if
+
+    if ctable_info.structure=EN_TBL_STRUCT_TABLE then 
+    i=0
+    while count < num_records
+        if tbl_all_get_field_value(table_name,i+table_index_offset, field_name, values(count), YES)=EN_TBL_STATUS_OK then
+            indices(count)=i+table_index_offset
+            count=count+1
+        end if
+        i=i+1
+    wend
+    
+    i=0
+    while i < num_records-1
+        j=0
+        while j < num_records - i - 1
+            dim result as short=tbl_sort_compare(values(j),values(j+1),field_type)
+            if result=1 then
+                key=values(j)
+                key2=indices(j)
+                values(j)=values(j+1)
+                indices(j)=indices(j+1)
+                values(j+1)=key
+                indices(j+1)=key2
+            end if
+            j=j+1
+        wend
+        i=i+1
+    wend
+    end if
+    'find in array
+    
+    index=-1
+    count=0
+    dim start_i, end_i, iteration_step as integer
+    start_i=0
+    end_i=num_records
+    iteration_step=1
+    if find_method=PL_FD_FIND_LESSER OR find_method=PL_FD_FIND_LESSER_EQUAL then
+        start_i=num_records-1
+        end_i=-1
+        iteration_step=-1
+    end if
+    i=start_i
+    while i <> end_i and i >= 0
+        dim value as string=""
+        if ctable_info.structure=EN_TBL_STRUCT_TABLE then
+            value=values(i)
+        else
+            tbl_all_get_field_value(table_name,i+1,field_name,value,YES)
+        end if
+        dim sort_result as short=tbl_sort_compare(value,search_val,field_type)
+        dim found_index as integer=-1
+        select case find_method
+        case PL_FD_FIND_GREATER_EQUAL:
+            if sort_result=1 OR sort_result=0 then
+                found_index=i
+            end if
+        case PL_FD_FIND_GREATER
+            if sort_result=1 then
+                found_index=i
+            end if
+        case PL_FD_FIND_LESSER:
+            if sort_result=-1 then
+                found_index=i
+            end if
+        case PL_FD_FIND_LESSER_EQUAL:
+            if sort_result=-1 OR sort_result=0 then
+                found_index=i
+            end if
+        case PL_FD_FIND_NOT_EQUAL:
+            if sort_result<>0 then
+                found_index=i
+            end if
+        case PL_FD_FIND_EQUAL:
+            if sort_result=0 then
+                found_index=i
+            end if
+        end select
+        if found_index<>-1 then
+            count=count+1
+            if count - 1 =rec_num then
+                index=found_index
+                exit while
+            end if
+        end if
+        i=i+iteration_step
+    wend
+    'if found, return index
+    if index <> -1 then
+        if ctable_info.structure=EN_TBL_STRUCT_TABLE then
+            rec_num=indices(index)
+        else
+            rec_num=index
+        end if
+    else
+    'if not found and wrap around, return first sorted item
+        if wraparound and num_records > 0 then
+            select case find_method
+            case PL_FD_FIND_GREATER_EQUAL,PL_FD_FIND_GREATER:
+                if num_records > 0 then
+                    rec_num=indices(0)
+                else
+                    rec_num=0
+                end if
+            case PL_FD_FIND_LESSER,PL_FD_FIND_LESSER_EQUAL:
+                if num_records > 0 then
+                    rec_num=indices(num_records-1)
+                else
+                    rec_num=0
+                end if
+            end select
+        else
+            rec_num=0
+        end if
+    end if
+end function
+
+sub tbl_delete_old_records(table_name as string)
+    dim log_tbl_info as tbl_type
+    dim dwtemp as word
+    dim count as word
+    dim active as word
+    dim status as en_tbl_status_codes
+    if tbl_all_is_in_memory(table_name)=YES then
+        exit sub
+    end if
+    if tbl_select(table_name, table_name) = EN_TBL_STATUS_OK then
+        tbl_get_table_info(table_name, log_tbl_info)
+        if log_tbl_info.structure=EN_TBL_STRUCT_LIST then
+            ' Trim when either file is at capacity OR active records reached max
+            tbl_get_num_records(active, NO)
+            if active=0 then
+                exit sub
+            end if
+            dwtemp = log_tbl_info.maxrecs * log_tbl_info.rec_size
+            count = 256/log_tbl_info.rec_size
+            while ((not(fd.filesize<dwtemp)) or (active>=log_tbl_info.maxrecs)) and count>0 and active>0
+                status=tbl_record_delete(1)
+                if status<>EN_TBL_STATUS_OK then
+                    exit while
+                end if
+                active=active-1
+                count=count-1
+            wend
+        end if
+    end if
+end sub
+        
+
+function tbl_all_add_row(byref table as string, byref row as string) as string
+
+    if tbl_all_is_in_memory(table)=YES then
+        tbl_all_add_row = tbl_static_add_row(table, row)
+    else
+        tbl_all_add_row = tbl_web_add_row(table, row)
+    end if
+end function
+        
+
+function tbl_all_is_in_memory(table_name as string) as no_yes
+    select case table_name
+    
+    case else:
+        tbl_all_is_in_memory = NO
+    end select
+end function
+    
+
+function tbl_all_get_table_index_offset(table_name_or_num as string) as word
+    if tbl_all_is_in_memory(table_name_or_num)=YES then
+        tbl_all_get_table_index_offset = 1
+    else
+        tbl_all_get_table_index_offset = 1
+    end if
+end function
+    
+
+function tbl_all_get_num_records(byref num_of_records as word, table_name_or_num as string, include_deleted as no_yes) as en_tbl_status_codes
+    select case table_name_or_num
+    
+    case else:
+        tbl_select(table_name_or_num, table_name_or_num)
+        tbl_get_num_records(num_of_records, include_deleted)
+    end select
+end function
+    
+
+function tbl_all_get_num_fields(table_name_or_num as string) as byte
+    select case table_name_or_num
+    
+    case else:
+        tbl_all_get_num_fields = tbl_get_num_fields(table_name_or_num)
+    end select
+end function
+    
+
+function tbl_all_get_field_info(table_name_or_num as string, field_index as integer, byref field_metadata as tbl_field_type) as en_tbl_status_codes
+    select case table_name_or_num
+    
+    case else:
+        tbl_all_get_field_info = tbl_get_field_info(table_name_or_num, field_index, field_metadata)
+    end select
+    tbl_all_get_field_info = EN_TBL_STATUS_OK
+end function
+    
+
+function tbl_all_get_field_value(table_name_or_num as string, row_index as integer, field_name as string, byref field_value as string, raw as no_yes) as en_tbl_status_codes
+    dim tmp_value as string
+    dim field_type as en_tbl_field_types
+
+    select case table_name_or_num
+    
+    case else:
+        if tbl_is_record_deleted(row_index)=NO then
+            tbl_record_sg(row_index,EN_TBL_GET)
+            if raw=YES then
+                tbl_field_sg_raw(field_name,field_value)
+            else
+                tbl_field_sg(field_name,field_value,EN_TBL_GET)
+            end if
+            tbl_all_get_field_value = EN_TBL_STATUS_OK
+        else
+            tbl_all_get_field_value = EN_TBL_STATUS_DELETED
+        end if
+        exit function
+    end select
+    if raw=YES then
+        tbl_value_to_binstr(tmp_value, field_value, field_type)
+    else
+        field_value = tmp_value
+    end if
+    tbl_all_get_field_value = EN_TBL_STATUS_OK
+end function
+    
+
+sub tbl_in_memory_start()
+    
+end sub
+    
+
+sub tbl_static_set_field_value(table as string, row_index as word, field_name as string, field_value as string)
+    select case table
+    
+    case else:
+        exit sub
+    end select
+end sub
+    
+
+sub tbl_static_set_table_size(table as string, row_index as word)
+    select case table
+    
+    case else:
+        exit sub
+    end select
+end sub
+    
+
+function tbl_static_get_table_structure(table as string) as en_tbl_struct
+    select case table
+    
+    case else:
+        tbl_static_get_table_structure = EN_TBL_STRUCT_TABLE
+    end select
+end function
+    
+
+function tbl_static_delete_row(byref table as string, row as word) as string
+    dim error as string(50)=""
+    dim num_records as word
+    dim shifted_value as string
+    dim field_info as tbl_field_type
+    dim num_fields as byte = tbl_all_get_num_fields(table)
+    tbl_all_get_num_records(num_records, table, NO)
+    if row> num_records then
+        exit function
+    end if
+    if num_records=1 then
+        tbl_static_set_table_size(table, 0)
+        callback_tbl_modified(table, EN_TBL_MODIFIED_DELETE)
+        tbl_static_delete_row="Invalid index"
+        exit function
+    end if
+    dim i as word
+    dim j as byte
+    for i = row to num_records - 1
+        for j = 0 to num_fields - 1
+            tbl_all_get_field_info(table, j, field_info)
+            tbl_all_get_field_value(table, i + 1, field_info.field_name, shifted_value, NO)
+            tbl_static_set_field_value(table, i, field_info.field_name, shifted_value)
+        next j
+    next i
+    tbl_static_set_table_size(table, num_records - 1)
+    callback_tbl_modified(table, EN_TBL_MODIFIED_DELETE)
+    tbl_static_delete_row=""
+end function
+
+function tbl_static_clear_table(byref table as string) as string
+    tbl_static_set_table_size(table, 0)
+    callback_tbl_modified(table, EN_TBL_MODIFIED_CLEAR)
+end function
+
+function tbl_static_edit_row(byref table as string, byref index as word, byref row as string) as string
+dim error as string(50) = ""
+    dim pos1, pos2 as word
+    dim num_of_fld as byte
+    dim fields(TBL_MAX_TOTAL_NUM_FIELDS) as string(128)
+    dim i as byte
+    dim s as string
+    dim enclosed_in_quotes as no_yes=NO
+    dim delimiter as string(1)="[, ]" ' placeholder; will be literal values below
+    dim enclosed_quote_offset as byte=0
+    dim field_info as tbl_field_type
+
+    dim num_records as word
+    tbl_all_get_num_records(num_records, table, NO)
+    if index>num_records then
+        tbl_static_edit_row="Invalid index"
+        exit function
+    end if
+
+    if instr(1, row, chr(34), 1) = 1 and instr(len(row) - 2, row, chr(34), 1) <> 0 then
+        enclosed_in_quotes=YES
+        delimiter = "\x22,\x22"
+        enclosed_quote_offset = 1
+    else
+        delimiter = ","
+    end if
+
+    num_of_fld = tbl_all_get_num_fields(table)
+    pos1 = 1
+    for i = 0 to num_of_fld - 1
+        s = ""
+        pos2 = instr(pos1 + 1, row, delimiter, 1)
+        if enclosed_in_quotes=YES then
+            while (instr(pos1,row,"\x5c\x22",1) > 0 and instr(pos1,row,"\x5c\x22",1) < instr(pos1 + 1,row,delimiter,1))
+                or (num_of_fld = 1 and instr(pos1,row,"\x5c\x22",1) > 0)
+                pos1 = pos1 + 1
+                pos2=instr(pos1,row,"\x5c\x22",1)
+                s = s + mid(row,pos1, pos2 - pos1) + "\x22"
+                pos1 = pos2+1
+                pos2=instr(pos1 + 1,row,delimiter,1)
+            wend
+            if pos2 = 0 then
+                pos2 = len(row)
+            end if
+        else
+            if pos2 = 0 then
+                pos2 = len(row)
+            end if
+        end if
+        s = s + mid(row,pos1+enclosed_quote_offset,pos2-pos1-enclosed_quote_offset)
+        fields(i) = s
+        pos1 = pos2 + 1 + enclosed_quote_offset
+    next i
+
+    for i = 0 to num_of_fld - 1
+        tbl_all_get_field_info(table, i, field_info)
+        tbl_static_set_field_value(table, index, field_info.field_name, fields(i))
+    next i
+    callback_tbl_modified(table, EN_TBL_MODIFIED_EDIT)
+    tbl_static_edit_row = ""
+end function
+
+function tbl_static_add_row(byref table as string, byref row as string) as string
+    dim error as string(50) = ""
+    dim pos1, pos2 as word
+    dim num_of_fld as byte
+    dim fields(TBL_MAX_TOTAL_NUM_FIELDS) as string(128)
+    dim i as byte
+    dim s as string
+    dim enclosed_in_quotes as no_yes=NO
+    dim delimiter as string(1)=","  ' Will be set to "\x22,\x22" when quoted
+    dim enclosed_quote_offset as byte=0
+    dim field_info as tbl_field_type
+    
+    if instr(1, row, chr(34), 1) = 1 and instr(len(row) - 2, row, chr(34), 1) <> 0 then
+        enclosed_in_quotes=YES
+        delimiter = "\x22,\x22"
+        enclosed_quote_offset = 1
+    end if
+
+    num_of_fld = tbl_all_get_num_fields(table)
+    pos1 = 1
+    for i = 0 to num_of_fld - 1
+        s = ""
+        pos2 = instr(pos1 + 1, row, delimiter, 1)
+        if enclosed_in_quotes=YES then
+            while (instr(pos1,row,"\x5c\x22",1) > 0 and instr(pos1,row,"\x5c\x22",1) < instr(pos1 + 1,row,delimiter,1))
+                or (num_of_fld = 1 and instr(pos1,row,"\x5c\x22",1) > 0)
+                pos1 = pos1 + 1
+                pos2=instr(pos1,row,"\x5c\x22",1)
+                s = s + mid(row,pos1, pos2 - pos1) + "\x22"
+                pos1 = pos2+1
+                pos2=instr(pos1 + 1,row,delimiter,1)
+            wend
+            if pos2 = 0 then
+                pos2 = len(row)
+            end if
+        end if
+        s = s + mid(row,pos1+enclosed_quote_offset,pos2-pos1-enclosed_quote_offset)
+        fields(i) = s
+        pos1 = pos2 + 1 + enclosed_quote_offset
+    next i
+    
+    dim num_records as word
+    tbl_all_get_num_records(num_records, table, NO)
+    if num_records=30 then
+        if tbl_static_get_table_structure(table)=EN_TBL_STRUCT_LIST then
+            tbl_static_delete_row(table, 0)
+            num_records = num_records - 1
+        else
+            tbl_static_add_row="Table is full"
+            exit function
+        end if
+    end if
+
+    for i = 0 to num_of_fld - 1
+        tbl_all_get_field_info(table, i, field_info)
+        tbl_static_set_field_value(table, num_records + 1, field_info.field_name, fields(i))
+    next i
+    tbl_static_set_table_size(table, num_records + 1)
+    callback_tbl_modified(table, EN_TBL_MODIFIED_ADD)
+    'Return empty string to indicate success
+    tbl_static_add_row = ""
+    
+end function
+
+' Wrapper functions to unify static vs web-backed tables
+
+sub tbl_get_table_active_rows(byref table as string, byref tbl_rows as word, byref tbl_rows_all as word)
+    if tbl_all_is_in_memory(table)=YES then
+        tbl_static_get_table_active_rows(table, tbl_rows, tbl_rows_all)
+    else
+        tbl_web_get_table_active_rows(table, tbl_rows, tbl_rows_all)
+    end if
+end sub
+
+function tbl_get_header(byref table as string) as string
+    if tbl_all_is_in_memory(table)=YES then
+        tbl_get_header = tbl_static_get_header(table)
+    else
+        tbl_get_header = tbl_web_get_header(table)
+    end if
+end function
+
+function tbl_delete_row(byref table as string, row as word) as string
+    if tbl_all_is_in_memory(table)=YES then
+        tbl_delete_row = tbl_static_delete_row(table, row)
+    else
+        tbl_delete_row = tbl_web_delete_row(table, row)
+    end if
+end function
+
+function tbl_clear_table(byref table as string) as string
+    if tbl_all_is_in_memory(table)=YES then
+        tbl_clear_table = tbl_static_clear_table(table)
+    else
+        tbl_clear_table = tbl_web_clear_table(table)
+    end if
+end function
+
+function tbl_edit_row(byref table as string, byref index as word, byref row as string) as string
+    if tbl_all_is_in_memory(table)=YES then
+        tbl_edit_row = tbl_static_edit_row(table, index, row)
+    else
+        tbl_edit_row = tbl_web_edit_row(table, index, row)
+    end if
+end function
+
+function tbl_get_row_csv(byref table as string, index as word, num_of_fld as byte) as string
+    index = index - 1 + tbl_all_get_table_index_offset(table)
+    if tbl_all_is_in_memory(table)=YES then
+        tbl_get_row_csv = tbl_static_get_fld_data(table, index, num_of_fld)
+    else
+        tbl_get_row_csv = tbl_web_get_fld_data(index, num_of_fld)
+    end if
+end function
+
+function tbl_get_row_json(byref table as string, index as word, num_of_fld as byte) as string
+    index = index - 1 + tbl_all_get_table_index_offset(table)
+    if tbl_all_is_in_memory(table)=YES then
+        tbl_get_row_json = tbl_static_get_fld_data_json(table, index, num_of_fld)
+    else
+        tbl_get_row_json = tbl_web_get_fld_data_json(index, num_of_fld)
+    end if
+end function
+
+sub tbl_static_get_table_active_rows(byref table as string, byref tbl_rows as word, byref tbl_rows_all as word)
+    tbl_all_get_num_records(tbl_rows, table, NO)
+    tbl_rows_all = tbl_rows
+end sub
+
+function tbl_static_get_header(byref table as string) as string
+    dim num_fields as byte = tbl_all_get_num_fields(table)
+    dim field_info as tbl_field_type
+    dim i as byte
+    dim header as string = "\x22index\x22,"
+    for i = 0 to num_fields - 1
+        tbl_all_get_field_info(table, i, field_info)
+        header = header + "\x22" + field_info.field_name + "\x22"
+        if i < num_fields - 1 then
+            header = header + ","
+        end if
+    next i
+    tbl_static_get_header = header
+end function
+
+sub tbl_get_flds(byref table as string)
+    if tbl_all_is_in_memory(table)=YES then
+        exit sub
+    else
+        tbl_web_get_flds(table)
+    end if
+end sub
+
+function tbl_get_field_default(byref table as string, byref field_name as string) as string
+    if tbl_all_is_in_memory(table)=YES then
+        tbl_get_field_default = ""
+    else
+        tbl_get_field_default = tbl_web_get_field_def(table, field_name)
+    end if
+end function
+
+function tbl_static_get_fld_data(table as string, row_index as word, num_of_fld as byte) as string
+    dim tmp_data as string=""
+    dim field_value as string
+    dim i as byte
+    dim num_records as word
+    tbl_all_get_num_records(num_records, table, NO)
+    if num_of_fld > tbl_all_get_num_fields(table) or row_index > num_records then
+        tbl_static_get_fld_data=""
+        exit function
+    end if
+    tmp_data="\x22"+str(row_index)+"\x22,"
+    for i = 0 to num_of_fld - 1
+        dim field_info as tbl_field_type
+        tbl_all_get_field_info(table, i, field_info)
+        tbl_all_get_field_value(table, row_index, field_info.field_name, field_value, NO)
+        tmp_data=tmp_data+"\x22"
+        tmp_data=tmp_data+field_value+"\x22"
+        if i < num_of_fld - 1 then
+            tmp_data=tmp_data+","
+        end if
+    next i
+    tbl_static_get_fld_data=tmp_data
+end function
+
+function tbl_static_get_fld_data_json(table as string, row_index as word, num_of_fld as byte) as string
+    dim tmp_data as string=""
+    dim field_value as string
+    dim i as byte
+    dim num_records as word
+    tbl_all_get_num_records(num_records, table, NO)
+    if num_of_fld > tbl_all_get_num_fields(table) or row_index > num_records then
+        tbl_static_get_fld_data_json=""
+        exit function
+    end if
+    tmp_data="{\x22index\x22:"+str(row_index)+","
+    for i = 0 to num_of_fld - 1
+        dim field_info as tbl_field_type
+        tbl_all_get_field_info(table, i, field_info)
+        tbl_all_get_field_value(table, row_index, field_info.field_name, field_value, NO)
+        tmp_data=tmp_data+"\x22"+field_info.field_name+"\x22:"
+        if field_info.field_type=EN_TBL_FIELD_STRING then
+            field_value="\x22"+escape_string(field_value)+"\x22"
+        end if
+        tmp_data=tmp_data+field_value
+        if i < num_of_fld - 1 then
+            tmp_data=tmp_data+","
+        end if
+    next i
+    tmp_data=tmp_data+"}"
+    tbl_static_get_fld_data_json=tmp_data
+end function
+
+function tbl_all_is_record_deleted(row_index as word, table_name_or_num as string) as no_yes
+    if tbl_all_is_in_memory(table_name_or_num)=YES then
+        tbl_all_is_record_deleted = NO
+    else
+        tbl_select(table_name_or_num, table_name_or_num)
+        tbl_all_is_record_deleted = tbl_is_record_deleted(row_index)
+    end if
+end function
+
+function tbl_all_get_table_info(byref table_name_or_num as string, byref table_metadata as tbl_type) as en_tbl_status_codes
+    if tbl_all_is_in_memory(table_name_or_num)=YES then
+        table_metadata.table_name = table_name_or_num
+        table_metadata.structure = tbl_static_get_table_structure(table_name_or_num)
+        table_metadata.num_of_fields = tbl_all_get_num_fields(table_name_or_num)
+        tbl_all_get_table_info = EN_TBL_STATUS_OK
+    else
+        tbl_all_get_table_info = tbl_get_table_info(table_name_or_num, table_metadata)
+    end if
+end function
+    
+
+function datetime_timestamp_seconds(timestamp as dword) as float
+    datetime_timestamp_seconds=datetime_timestamp_mins(timestamp) * 60 + (timestamp MOD 60)
+end function
+
+function datetime_timestamp_mins(timestamp as dword) as dword
+    dim days as word = 0
+    dim mins as word = 0
+    dim secs as byte = 0
+    dim mins_offset as integer=0
+    td_get_tzone_offset(APP_TIMEZONE,mins_offset)
+    datetime_from_timestamp(timestamp + mins_offset * 60, days, mins, secs)
+    datetime_timestamp_mins=mins
+end function
+
+function datetime_mins_to_timestamp(mins as word) as dword
+    dim datetime_days,datetime_minutes as word
+    dim datetime_secs as byte
+    dim timestamp as dword=datetime_current_timestamp()
+    datetime_from_timestamp(timestamp,datetime_days,datetime_minutes,datetime_secs)
+    datetime_minutes=mins
+    td_local_to_gmt(datetime_days,datetime_minutes,APP_TIMEZONE,PL_OFF)
+    datetime_mins_to_timestamp=datetime_to_timestamp(datetime_days,datetime_minutes,0)
+end function
+
+
+sub lcd_init_widgets()
+
+
+lcd_img_widgets(0).filename="8308378.png.bmp"
+lcd_img_widgets(0).x_pos=1
+lcd_img_widgets(0).y_pos=-59
+lcd_img_widgets(0).x_offset=0
+lcd_img_widgets(0).y_offset=0
+lcd_img_widgets(0).width=257
+lcd_img_widgets(0).height=139
+lcd_img_widgets(0).visible=true
+lcd_img_widgets(0).screen=0
+
+
+lcd_text_widgets(0).text="Fa cacare ma ci sto lavorando"
+lcd_text_widgets(0).x_pos=38
+lcd_text_widgets(0).y_pos=207
+lcd_text_widgets(0).width=240
+lcd_text_widgets(0).height=18
+lcd_text_widgets(0).forecolor=&hffff
+lcd_text_widgets(0).backcolor=&h0
+lcd_text_widgets(0).font=LCD_SMALL_FONT
+lcd_text_widgets(0).text_alignment=PL_LCD_TEXT_ALIGNMENT_MIDDLE_CENTER
+lcd_text_widgets(0).visible=true
+lcd_text_widgets(0).screen=0
+
+end sub
+    
+sub lcd_display_widgets(screen as byte)
+dim i as byte
+dim lcd_image_widget as lcd_img_widget
+dim lcd_text_widget as lcd_text_widget
+
+display_current_screen=screen
+
+lcd.forecolor=&h1f
+lcd.lock
+lcd.fill(0,0,lcd.width,lcd.height)
+lcd.unlock
+
+if LCD_TEXT_WIDGETS_COUNT > 0 then
+    for i = 0 to LCD_TEXT_WIDGETS_COUNT - 1
+        lcd_text_widget = lcd_text_widgets(i)
+        lcd_display_text_widget(lcd_text_widget)
+    next i
+end if
+
+if LCD_IMG_WIDGETS_COUNT > 0 then
+    for i = 0 to LCD_IMG_WIDGETS_COUNT - 1
+        lcd_image_widget = lcd_img_widgets(i)
+        lcd_display_img_widget(lcd_image_widget)
+    next
+end if
+#ifdef LCD_GRAPH_WIDGETS_COUNT
+if LCD_GRAPH_WIDGETS_COUNT > 0 then
+    for i = 0 to LCD_GRAPH_WIDGETS_COUNT - 1
+        if lcd_graph_widgets(i).screen = display_current_screen then
+            lcd_graph_init(lcd_graph_widgets(i))
+        end if
+    next i
+end if
+#endif
+end sub
+
+sub lcd_display_img_widget(lcd_image_widget as lcd_img_widget)
+    
+    if lcd_image_widget.screen <> display_current_screen then
+        exit sub
+    end if
+    lcd.lock
+    lcd.forecolor=&h1f
+    lcd.fill(lcd_image_widget.x_pos, lcd_image_widget.y_pos, lcd_image_widget.width, lcd_image_widget.height)
+    if lcd_image_widget.visible<>false AND lcd_image_widget.filename <> "" then
+        romfile.open(lcd_image_widget.filename)
+        lcd.bmp(romfile.offset, lcd_image_widget.x_pos, lcd_image_widget.y_pos, lcd_image_widget.x_offset, lcd_image_widget.y_offset, lcd_image_widget.width, lcd_image_widget.height)
+    end if
+    lcd.unlock
+end sub
+
+sub lcd_display_text_widget(lcd_text_widget as lcd_text_widget)
+    
+    dim text_to_print as string=lcd_text_widget.text
+    if lcd_text_widget.screen <> display_current_screen then
+        exit sub
+    end if
+    lcd.forecolor=lcd_text_widget.backcolor
+    lcd.lock
+    lcd.fill(lcd_text_widget.x_pos, lcd_text_widget.y_pos, lcd_text_widget.width, lcd_text_widget.height)
+    if lcd_text_widget.visible<>false then
+        lcd.forecolor=lcd_text_widget.forecolor
+        romfile.open(lcd_text_widget.font)
+        lcd.setfont(romfile.offset)
+        lcd.textorientation=PL_LCD_TEXT_ORIENTATION_0
+        lcd.textverticalspacing=1
+        lcd.texthorizontalspacing=1
+        lcd.forecolor=lcd_text_widget.forecolor
+        lcd.backcolor=lcd_text_widget.backcolor
+        lcd.textalignment=lcd_text_widget.text_alignment
+        while lcd.getprintwidth(text_to_print) > lcd_text_widget.width
+            text_to_print = mid(text_to_print, 1, len(text_to_print) - 1)
+        wend
+        lcd.printaligned(text_to_print, lcd_text_widget.x_pos, lcd_text_widget.y_pos, lcd_text_widget.width, lcd_text_widget.height)
+    end if
+    lcd.unlock
+end sub
+
+sub lcd_log(text as string)
+    dim i as byte
+    if lcd_log_index < 29 - 1 then
+        lcd_log_index = lcd_log_index + 1
+    else 
+        for i=0 to 29 - 2
+            lcd_logs(i) = lcd_logs(i + 1)
+        next i
+    end if
+    lcd_logs(lcd_log_index) = left(text,53)
+    romfile.open(LOG_FONT_FILE)
+    lcd.setfont(romfile.offset)
+    lcd.lock()
+    lcd.forecolor=&h1f
+    lcd.fill(0,0,lcd.width,lcd.height)
+    lcd.forecolor=&hffff
+    for i=0 to 29 - 1
+        lcd.print(lcd_logs(i),0,i * 8)
+    next i
+    lcd.unlock()
+end sub
+
+sub ui_menu_exit()
+    
+end sub
+
+sub interface_set(interface as pl_sock_interfaces, state as no_yes)
+    dim best_interface as pl_sock_interfaces=DEFAULT_INTERFACE
+    dim cell_starting as boolean=false
+
+    if interface_ready(interface) <> state then
+        dim print_string as string(50) = ""
+        if interface=PL_SOCK_INTERFACE_NET then
+            print_string = print_string + "NET>"
+        else if interface=PL_SOCK_INTERFACE_WLN then
+            print_string = print_string + "WiFi>"
+        else if interface=PL_SOCK_INTERFACE_PPP then
+            print_string = print_string + "CELL>"
+        end if
+        if state=YES then
+            print_string = print_string + " enabled"
+            if interface=PL_SOCK_INTERFACE_NET then
+                print_string = print_string + ", IP: " + net.ip
+            else if interface=PL_SOCK_INTERFACE_WLN then
+            #IF WLN_AVAILABLE
+                print_string = print_string + ", IP: " + wln.ip
+            #ENDIF
+            else if interface=PL_SOCK_INTERFACE_PPP then
+                print_string = print_string + ", IP: " + ppp.ip
+            end if
+        else
+            print_string = print_string + " disabled"
+        end if
+
+        sys.debugprint(print_string + "\r\n")
+    end if
+    
+    if state = YES then
+        interface_ready(interface) = YES
+    else
+        interface_ready(interface) = NO
+    end if
+    #IF INTERFACE_SWITCHING
+    if interface_ready(PL_SOCK_INTERFACE_NET) = YES then
+        best_interface = PL_SOCK_INTERFACE_NET
+    else
+        #IF WLN_AVAILABLE
+            if interface_ready(PL_SOCK_INTERFACE_WLN) = YES then
+                best_interface = PL_SOCK_INTERFACE_WLN
+            end if
+        #ENDIF
+        if best_interface=PL_SOCK_INTERFACE_NULL then
+        #IF CELLULAR_AVAILABLE
+            if interface_ready(PL_SOCK_INTERFACE_PPP) = YES then
+                best_interface = PL_SOCK_INTERFACE_PPP
+                cell_started=false
+            else
+                cell_start()
+                cell_starting=true
+                cell_started=true
+            end if
+        #ENDIF
+        end if
+    end if
+    #IF CELLULAR_AVAILABLE
+    if best_interface<>PL_SOCK_INTERFACE_PPP AND cell_starting=false AND cell_sms_enabled=false then
+        cell_started=false
+        signal_strength_set(0)
+        cell_stop()
+        cell_started=false
+    end if
+    #ENDIF
+    #ENDIF
+
+    if interface_ready(best_interface)=NO then
+        best_interface=PL_SOCK_INTERFACE_NULL
+    end if
+    change_current_interface(best_interface)
+    
+end sub
+
+
+sub close_interface_sockets(interface as pl_sock_interfaces)
+    dim f,sock_num_bup as byte
+    dim i as word
+
+    sock_num_bup=sock.num
+
+    for f=0 to sock.numofsock-1
+        sock.num=f
+        if sock.targetinterface=interface then
+            sock.close()
+            sock.discard()
+        end if
+    next f
+
+    i=sys.timercount
+
+    wait_close_interface_sockets:
+    for f=0 to sock.numofsock-1
+        sock.num=f
+        if sock.targetinterface=interface and sock.statesimple<>PL_SSTS_CLOSED and sys.timercount-i<5 and sys.timercount>=i then
+            goto wait_close_interface_sockets
+        end if
+    next f
+
+    sock.num=sock_num_bup
+
+end sub
+
+sub callback_system_error(byref tag as string, byref message as string)
+    
+    #IFDEF RETARGET_DEBUG_PRINT
+        sys.trace("ERR-" + tag + ">" + message)
+    #ELSE
+        sys.debugprint("ERR-" + tag + ">" + message)
+    #ENDIF
+end sub
+ 
+
+sub change_current_interface(new_interface as pl_sock_interfaces)
+    if current_interface<>new_interface then
+        
+        
+        sock.inconenabledmaster=NO
+        close_interface_sockets(current_interface)
+
+        current_interface=new_interface        
+        
+        select case current_interface
+            case PL_SOCK_INTERFACE_NET: sys.debugprint("Set current interface to Ethernet\r\n") 
+        
+            case PL_SOCK_INTERFACE_WLN: sys.debugprint("Set current interface to Wi-Fi\r\n")
+        
+            case PL_SOCK_INTERFACE_PPP: sys.debugprint("Set current interface to Cellular\r\n")
+        end select
+        sock.inconenabledmaster=YES
+        if new_interface <> PL_SOCK_INTERFACE_NULL then
+            
+            
+            http_server_start()
+            
+                sntp_start(current_interface,SNTP_SERVER, 0, SNTP_socket)
+        end if
+    end if
+end sub
+
+sub sys.debugprint(byref s as string)
+    sys.trace(s)
+    
+if APP_LOGGING="lcd_log" then
+    lcd_log(s)
+end if
+#IFDEF TBL_MAX_TOTAL_NUM_FIELDS
+    if APP_LOGGING="tbl_log" then
+
+    dim prev_fd_num as byte=fd.filenum
+    dim debug_table as tbl_type
+    dim prev_tbl_name as string(20)=tbl_get_table_name()
+    dim tbl_select_status as en_tbl_status_codes
+    if tbl_all_is_in_memory("DEBUG")=NO then
+        if prev_tbl_name<>"DEBUG" or debug_table.filenum<>prev_fd_num then
+            tbl_select_status = tbl_select("DEBUG","DEBUG")
+            if tbl_select_status <> EN_TBL_STATUS_OK then
+                exit sub
+            end if
+        end if
+        tbl_select_status = tbl_get_table_info("DEBUG", debug_table)
+        if tbl_select_status<>EN_TBL_STATUS_OK then
+            exit sub
+        end if
+    end if
+    if right(s,2)="\r\n" then
+        s=left(s,len(s)-2)
+    end if
+    
+    tbl_all_add_row("DEBUG","\x22"+lstr(datetime_current_timestamp())+"\x22,\x22"+left(s,121)+"\x22")
+    if prev_tbl_name<>"DEBUG" AND prev_tbl_name<>"" AND tbl_all_is_in_memory("DEBUG")=NO then
+        tbl_select(prev_tbl_name,prev_tbl_name)
+    end if
+    fd.filenum=prev_fd_num
+    end if
+    tbl_delete_old_records("DEBUG")
+#ENDIF
+end sub
+
+sub callback_dhcp_ok(renew as no_yes, interface as pl_sock_interfaces, byref ip as string, byref gateway_ip as string, byref netmask as string, lease_time as dword)
+    
+    
+        if interface=PL_SOCK_INTERFACE_NET then
+            if renew=YES and net.ip<>ip then
+                'this is a lease renewal and the DHCP server has issues new IP
+                'it is better to reboot than deal with the implications of the changed IP
+                sys.reboot
+            end if
+    
+            #if DEV_DEBUG_PRINT
+                dev_debugprint("Ethernet DHCP OK ("+ip+")")
+            #endif
+    
+            if net.ip<>ip then
+                sock.inconenabledmaster=NO
+                close_interface_sockets(PL_SOCK_INTERFACE_NET)
+                net.ip=ip
+                if gateway_ip<>"" then net.gatewayip=gateway_ip
+                if netmask<>"" then net.netmask=netmask
+                sock.inconenabledmaster=YES
+            end if
+            
+    var_NETIP_set(net.ip)
+            interface_set(PL_SOCK_INTERFACE_NET,YES)
+        end if
+                
+end sub
+        
+
+sub callback_dhcp_failure(interface as pl_sock_interfaces,failure_code as en_dhcp_status_codes)
+    
+end sub
+        
+
+sub callback_dhcp_pre_clear_ip(interface as pl_sock_interfaces)
+    
+end sub
+        
+
+sub callback_dhcp_pre_buffrq(required_buff_pages as byte)
+    
+end sub
+        
+
+sub callback_dhcp_buff_released()
+    
+end sub
+        
+
+sub callback_dns_failure(status as en_dns_status_codes)
+    
+end sub
+        
+
+sub callback_dns_answer_acquired(return_type as en_dns_return_type, byref return_string as string)
+    
+    
+        http_dns_answer_acquired(return_type, return_string)
+    'if return_type=EN_DNS_RET_IP then
+    '    sys.debugprint("DNS:" + ddstr(return_string) + "\r\n")
+    'end if
+end sub
+        
+
+sub callback_dns_ok()
+    
+end sub
+        
+
+sub callback_dns_pre_buffrq(num_of_pages_required as byte)
+    
+end sub
+        
+
+sub callback_dns_buff_released()
+    
+end sub
+        
+
+sub callback_http_reponse_code_arrival(http_response as string)
+    
+end sub
+
+
+sub callback_http_request_failed(byref error_message as string)
+    
+    upload_started=false
+end sub
+
+
+sub callback_http_header_arrival(byref header_type as string, byref header_value as string)
+    
+end sub
+
+
+sub callback_http_headers_complete()
+    
+end sub
+
+
+sub callback_http_content_arrival(byref data as string)
+    
+    
+    if http_request_item.url = UPGRADE_URL then
+          upgrade_set_buffer(data)
+          dim processing as boolean=true
+          dim upgrade_len as byte=len(upgrade_buffer)
+          while processing
+            device_firmware_upload_update()
+            if len(upgrade_buffer)<>upgrade_len then
+              processing=true
+            else
+              processing=false
+            end if
+            upgrade_len=len(upgrade_buffer)
+          wend
+    end if
+                
+end sub
+
+
+sub callback_http_post_data_sent_ok()
+    
+end sub
+
+
+sub callback_http_send_post_data(remaining_content_length as dword)
+    
+end sub
+
+
+sub callback_http_send_headers()
+    
+end sub
+
+
+sub callback_http_request_complete()
+    
+end sub
+
+
+sub callback_http_response_code_arrival(byref http_response as string)
+    
+end sub
+
+
+function callback_http_open_romfile() as dword
+    callback_http_open_romfile=0
+    
+end function
+
+
+sub callback_http_server_header_received(byref server as http_server_state, byref header as string, byref value as string)
+    
+end sub
+
+sub callback_http_server_body_received(byref server as http_server_state, byref body as string)
+    
+end sub
+
+function callback_http_server_endpoint_called(byref server as http_server_state) as boolean
+    callback_http_server_endpoint_called=false
+    
+    
+    
+    dim params as string=server.request_path
+    dim value as string=""
+    
+    if server.request_method<>"GET" then
+        params=server.request_value_buffer
+    end if
+    dim loggedin as boolean=server.request_authenticated        
+    
+    if server.request_file_name="api.html" then
+        callback_http_server_endpoint_called=true
+        dim result as string=""
+        dim endpoint as string(3)=http_server_find_param(params, "e")
+        dim action as string(20)=http_server_find_param(params, "action")
+        dim loggedin as boolean=server.request_authenticated
+    
+        if endpoint="a" AND action="get" then 'authentication challenge
+            http_server_response_status(200)
+            http_server_response_header("Content-Type", "text/plain")
+            http_server_response_header_end()
+            sock.setdata("0")
+            sock.send()
+        else
+        
+        
+        if loggedin then
+    
+        http_server_response_status(200)
+        http_server_response_header("Content-Type", "application/json")
+        http_server_response_header("Access-Control-Allow-Origin", "*")
+        http_server_response_header("Connection", "close")
+    
+        http_server_response_header_end()
+    
+        select case endpoint
+            case "i": 'information
+                select case action
+                    case "get":
+                        dim firmwareVersion as string(40)=mid(sys.version, 2,len(sys.version) - 2)
+                        dim timestamp as dword=datetime_current_timestamp()
+                        dim daycount, mincount as word
+                        dim seconds as byte
+                        datetime_from_timestamp(timestamp, daycount, mincount, seconds)
+                        sock.setdata("{")
+                        sock.setdata("\x22firmwareVersion\x22:\x22" + firmwareVersion + "\x22,")
+                        
+                        
+                                #IF PLATFORM_ID=WM2000 OR PLATFORM_ID=WS1102
+                                sock.setdata("\x22ip\x22:\x22" + wln.ip + "\x22,")
+                                sock.setdata("\x22mac\x22:\x22" + hex_mac(wln.mac) + "\x22,")        
+                                #ELSE  
+                                sock.setdata("\x22ip\x22:\x22" + net.ip + "\x22,")
+                                sock.setdata("\x22mac\x22:\x22" + hex_mac(net.mac) + "\x22,")
+                                #ENDIF
+                                sock.setdata("\x22wlnmac\x22:\x22" + hex_mac(wln.mac) + "\x22,")
+                                sock.setdata("\x22wlnip\x22:\x22" + wln.ip + "\x22,")
+                        sock.setdata("\x22bootTime\x22:\x22" + lstr(timestamp - sys.timercount32 / 2)  + "\x22,")
+                        #IF WLN_AVAILABLE=1
+                        sock.setdata("\x22wifiOn\x22:\x22" + str(wln.enabled) + "\x22,")
+                        #ELSE
+                        sock.setdata("\x22wifiOn\x22:\x22false\x22,")
+                        #ENDIF
+                        sock.setdata("\x22timezone\x22:\x22" + str(APP_TIMEZONE) + "\x22,")
+                        sock.setdata("\x22time\x22:\x22" + lstr(timestamp) + "\x22" )
+                        sock.setdata("}")
+                        sock.send()
+                    case "edit_t":
+                        dim timestamp as dword=http_server_find_param(params, "t")
+                        dim days, minutes as word
+                        dim secs as byte
+                        datetime_from_timestamp(timestamp, days, minutes, secs)
+                        td_gmt_to_local(days, minutes, datetime_tz_offset, PL_OFF)
+                        #IF RTC_AVAILABLE
+                        rtc.setdata(days, minutes, secs)
+                        #ENDIF
+                        sock.setdata("\x22time\x22:\x22" + lstr(timestamp) + "\x22")
+                        sock.send()
+                    case "get_tz":
+                        sock.setdata(str(APP_TIMEZONE))
+                        sock.send()
+                    case "edit_tz":
+                        dim timestamp as dword=http_server_find_param(params, "t")
+                        dim days, minutes as word
+                        dim secs as byte
+                        dim new_tz_offset as en_td_timezones=http_server_find_param(params, "tz")
+                        datetime_tz_offset= new_tz_offset
+                        APP_TIMEZONE = new_tz_offset
+                        datetime_from_timestamp(timestamp, days, minutes, secs)
+                        td_gmt_to_local(days, minutes, new_tz_offset, PL_OFF)
+                        #IF RTC_AVAILABLE
+                        rtc.setdata(days, minutes, secs)
+                        #ENDIF
+                        sock.setdata("{")
+                        sock.setdata("\x22timezone_offset\x22:\x22" + str(APP_TIMEZONE) + "\x22")
+                        sock.setdata("\x22time\x22:\x22" + lstr(timestamp) + "\x22")
+                        sock.setdata("}")
+                        sock.send()
+                    case else :
+    
+                end select
+    
+            case "v": 'variable
+                dim variable as string=http_server_find_param(params, "variable")
+                action=http_server_find_param(params, "action")
+                value=http_server_decode(http_server_find_param(params, "value"))
+                if action="get" then
+                
+                
+                dim var_value as string = ""
+                select case variable
+                    
+                        case "DN":
+                            var_value= "\x22"+DN+"\x22"
+                        case "ON":
+                            var_value= "\x22"+ON+"\x22"
+                        case "NETCP":
+                            var_value= ftofixed(NETCP,4)
+                        case "NETIP":
+                            var_value= "\x22"+NETIP+"\x22"
+                        case "NETNM":
+                            var_value= "\x22"+NETNM+"\x22"
+                        case "NETGW":
+                            var_value= "\x22"+NETGW+"\x22"
+                        case "stg1":
+                            var_value= "\x22"+stg1+"\x22"
+                    case else:
+                end select
+                sock.setdata(var_value)
+                sock.send()
+                else if action="set" then
+                
+                
+                select case variable
+                    
+                        case "DN":
+                            var_DN_set(value)
+                        case "ON":
+                            var_ON_set(value)
+                        case "NETCP":
+                            var_NETCP_set(string_to_float(value))
+                        case "NETIP":
+                            var_NETIP_set(value)
+                        case "NETNM":
+                            var_NETNM_set(value)
+                        case "NETGW":
+                            var_NETGW_set(value)
+                        case "stg1":
+                            var_stg1_set(value)
+                    case else:
+                end select
+                end if
+            case "w":
+                action=http_server_find_param(params, "a")
+                if action="get" then
+                    dim send_timeout as dword=sys.timercountms+2000
+                    sock.setdata("{")
+                    
+                    
+                                value = "\x22DN\x22:" + "\x22"+DN+"\x22"
+                    
+                                value = value + ","
+                    
+                                
+                    if sock.txfree<len(value) then
+                        send_timeout=sys.timercountms+2000
+                        sock.send()
+                        while (sock.txlen>0) AND sys.timercountms<send_timeout
+                        wend
+                    end if
+                    sock.setdata(value)
+                    
+                    
+                                value = "\x22ON\x22:" + "\x22"+ON+"\x22"
+                    
+                                value = value + ","
+                    
+                                
+                    if sock.txfree<len(value) then
+                        send_timeout=sys.timercountms+2000
+                        sock.send()
+                        while (sock.txlen>0) AND sys.timercountms<send_timeout
+                        wend
+                    end if
+                    sock.setdata(value)
+                    
+                    
+                                value = "\x22NETCP\x22:" + ftofixed(NETCP,4)
+                    
+                                value = value + ","
+                    
+                                
+                    if sock.txfree<len(value) then
+                        send_timeout=sys.timercountms+2000
+                        sock.send()
+                        while (sock.txlen>0) AND sys.timercountms<send_timeout
+                        wend
+                    end if
+                    sock.setdata(value)
+                    
+                    
+                                value = "\x22NETIP\x22:" + "\x22"+NETIP+"\x22"
+                    
+                                value = value + ","
+                    
+                                
+                    if sock.txfree<len(value) then
+                        send_timeout=sys.timercountms+2000
+                        sock.send()
+                        while (sock.txlen>0) AND sys.timercountms<send_timeout
+                        wend
+                    end if
+                    sock.setdata(value)
+                    
+                    
+                                value = "\x22NETNM\x22:" + "\x22"+NETNM+"\x22"
+                    
+                                value = value + ","
+                    
+                                
+                    if sock.txfree<len(value) then
+                        send_timeout=sys.timercountms+2000
+                        sock.send()
+                        while (sock.txlen>0) AND sys.timercountms<send_timeout
+                        wend
+                    end if
+                    sock.setdata(value)
+                    
+                    
+                                value = "\x22NETGW\x22:" + "\x22"+NETGW+"\x22"
+                    
+                                value = value + ","
+                    
+                                
+                    if sock.txfree<len(value) then
+                        send_timeout=sys.timercountms+2000
+                        sock.send()
+                        while (sock.txlen>0) AND sys.timercountms<send_timeout
+                        wend
+                    end if
+                    sock.setdata(value)
+                    
+                    
+                                value = "\x22stg1\x22:" + "\x22"+stg1+"\x22"
+                    
+                                
+                    if sock.txfree<len(value) then
+                        send_timeout=sys.timercountms+2000
+                        sock.send()
+                        while (sock.txlen>0) AND sys.timercountms<send_timeout
+                        wend
+                    end if
+                    sock.setdata(value)
+                    
+                    sock.setdata("}")
+                    sock.send()
+                    send_timeout=sys.timercountms+2000
+                    while (sock.txlen>0) AND sys.timercountms<send_timeout
+                    wend
+                end if
+            case "s": 'Settings / LUIS
+                action=http_server_find_param(params, "a")
+                select case action
+                case "def": 'settings.xtxt and sdf.xtxt
+    
+                case "set": 'set value
+    
+                case "get": 'get value
+    
+                case "cmd": 'send command
+                    dim cmd_str as string=http_server_decode(http_server_find_param(params, "cmd"))
+                    dim x,y as byte
+                    result = stgcmd_proc_cmd(cmd_str)
+                    if result<>"" then
+                        sock.setdata(result)
+                        sock.send()
+                    end if
+                case else:
+    
+                end select
+    
+            case "t": 'tables
+            #IFDEF TBL_MAX_NUM_TABLES
+                action=http_server_find_param(params,"a")
+                dim table_name as string(TBL_MAX_TABLE_NAME_LEN + 1)
+                dim table_metadata as tbl_type
+                dim index as byte=0
+                dim row as string=""
+                if action<>"get" then
+                    table_name=http_server_find_param(params,"table")
+                    if tbl_all_get_table_info(table_name, table_metadata) <> EN_TBL_STATUS_OK then
+                        sock.setdata("Table not found")
+                        sock.send()
+                        exit function
+                    end if
+                end if
+                select case action
+                case "get":
+                    dim table_type as string=http_server_find_param(params, "type")
+                    tbl_web_get_tables(table_type)
+                case "count":
+                    dim tbl_rows as word=0
+                    dim tbl_rows_all as word=0
+                    tbl_get_table_active_rows(table_name, tbl_rows, tbl_rows_all)
+                    sock.setdata(str(tbl_rows))
+                    sock.send()
+                case "rows":
+                    server.state=HTTP_SERVER_STATE_RS_BODY_CONTENT
+                    dim offset as word=val(http_server_find_param(params,"offset")) + 1
+                    if offset=0 then
+                        offset=1
+                    end if
+                    server.request_read_pos=offset
+                    result=tbl_get_header(table_name)+"\r\n"
+                    sock.notifysent(sock.txbuffsize-255)
+                case "add":
+                    row=http_server_decode(http_server_find_param(params,"row"))
+                    result=tbl_all_add_row(table_name,row)
+                case "delete":
+                    dim row_index as word=val(http_server_decode(http_server_find_param(params,"row")))
+                    result=tbl_delete_row(table_name,row_index)
+                case "clear":
+                    result=tbl_clear_table(table_name)
+                case "edit":
+                    row=http_server_decode(http_server_find_param(params,"row"))
+                    dim index as word=val(http_server_find_param(params,"index"))
+                    result=tbl_edit_row(table_name,index,row)
+                case "get_field_default":
+                    dim field_name as string=http_server_find_param(params,"field_name")
+                    result=tbl_get_field_default(table_name,field_name)
+                case else:
+                    result="Unsupported Action"
+                end select
+                sock.setdata(result)
+                sock.send()
+            #ENDIF
+    
+            case "f": 'RPC functions
+                dim variable as string=http_server_decode(http_server_find_param(params,"variable"))
+                value=http_server_decode(http_server_find_param(params,"value"))
+                
+                
+                select case variable
+                    
+                    case else:
+                end select
+            case else:
+        end select
+        else
+            http_server_response_status(401)
+            http_server_response_header("WWW-Authenticate", "basic")
+    
+            http_server_response_header_end()
+            sock.setdata("\x02UNAUTHORIZED\x02")
+            sock.send()
+        end if
+        end if
+    else if instr(1,server.request_file_name,"api/tables",1)>=1 then
+            if loggedin then
+                callback_http_server_endpoint_called=true
+                server.state=HTTP_SERVER_STATE_RS_BODY_CONTENT
+                dim table_name as string=http_server_find_param(params,"table")
+                dim offset as word=val(http_server_find_param(params,"offset")) + 1
+                if offset=0 then
+                    offset=1
+                end if
+                server.request_read_pos=offset
+    #IFDEF TBL_MAX_NUM_TABLES
+                if tbl_select(table_name, table_name)<>EN_TBL_STATUS_OK then
+                    http_server_response_status(500)
+                    http_server_response_header("Content-Type", "application/json")
+                    http_server_response_header("Access-Control-Allow-Origin", "*")
+                    http_server_response_header("Connection", "close")
+                    http_server_response_header_end()
+                    server.state=HTTP_SERVER_STATE_END
+                else
+                tbl_get_flds(table_name)
+    
+                    http_server_response_status(200)
+                    http_server_response_header("Content-Type", "application/json")
+                    http_server_response_header("Access-Control-Allow-Origin", "*")
+                    http_server_response_header("Connection", "close")
+                    http_server_response_header_end()
+                    sock.setdata("[")
+                    sock.send()
+                    sock.notifysent(sock.txbuffsize-255)
+                end if
+    #ELSE
+                http_server_response_status(500)
+                http_server_response_header("Content-Type", "application/json")
+                http_server_response_header("Access-Control-Allow-Origin", "*")
+                http_server_response_header("Connection", "close")
+                http_server_response_header_end()
+                server.state=HTTP_SERVER_STATE_END
+    #ENDIF
+            else
+                http_server_response_status(401)
+                http_server_response_header("WWW-Authenticate", "basic")
+        
+                http_server_response_header_end()
+                sock.setdata("\x02UNAUTHORIZED\x02")
+                sock.send()
+            end if
+    else
+        callback_http_server_endpoint_called=false
+    end if
+            
+end function
+
+
+sub callback_sntp_failure(sntp_status as en_sntp_status_codes)
+    sys.debugprint("SNTP failed\r\n")
+    
+end sub
+        
+
+sub callback_sntp_ok(byref w_days as word,byref w_mins as word,byref b_seconds as byte)
+    td_gmt_to_local(w_days,w_mins,APP_TIMEZONE,PL_OFF)
+    #IF RTC_AVAILABLE
+    rtc.setdata(w_days,w_mins,b_seconds)
+    #ENDIF
+    
+end sub
+        
+
+sub callback_sntp_pre_buffrq(required_buff_pages as byte)
+    
+end sub
+        
+
+sub callback_stgcmd_buzz_command()
+
+end sub
+    
+
+sub on_firmware_update_start(byref current_fw_upg_state as pl_upg_state_t) 
+    
+    upload_started=true
+end sub
+
+sub on_firmware_update_data_received(byref current_fw_upg_state as pl_upg_state_t) 
+    
+end sub
+
+sub on_firmware_update_percent_change(byref current_fw_upg_state as pl_upg_state_t) 
+    
+    #IFDEF RETARGET_DEBUG_PRINT
+    sys.trace(str(current_fw_upg_state.fw_percent)+"%\r\n")
+    #ELSE
+    sys.debugprint(str(current_fw_upg_state.fw_percent)+"%\r\n")
+    #ENDIF
+end sub
+
+sub on_firmware_update_file_complete(byref current_fw_upg_state as pl_upg_state_t)
+    
+end sub
+
+sub on_firmware_update_complete(byref current_fw_upg_state as pl_upg_state_t)
+    
+    upload_started=false
+    dim i, j as integer
+    dim module_type as pl_wln_module_types
+
+        
+    if current_fw_upg_state.fw_fail_reason <> PL_FW_FAIL_NONE then
+    #IFDEF RETARGET_DEBUG_PRINT
+        sys.trace("There was a failure.\r\n")
+    #ELSE
+        sys.debugprint("There was a failure.\r\n")
+    #ENDIF
+    end if
+
+    if current_fw_upg_state.state <> PL_FW_UPG_COMPLETE then
+        exit sub
+    end if
+
+    pat.play("B~", PL_PAT_CANINT)
+
+    'i = get_firmware_index(WA2000_MON)
+    'if i >= 0 then
+    '   upgrade_WA2000_firmware(WA2000_MON, i)
+    'end if
+
+    i = get_firmware_index(WA2000_APP)
+
+    i =  get_firmware_index(UNCOMPRESSED_TIOS_APP)  
+    if i >= 0  then 
+    #IFDEF FIRMWARE_UPGRADE_FILENAME
+    dim fd_status as pl_fd_status_codes
+    dim iii as byte=0
+    for iii=0 to 26 - 1
+        filenum_release(iii)
+    next iii
+    fd.filenum=0
+    fd.open(FIRMWARE_UPGRADE_FILENAME)
+    dim checksum as dword=0
+    dim s as string=""
+    dim s_bytes(255) as byte
+    while fd.pointer < fd.filesize
+        s = fd.getdata(255)
+        s_bytes=s
+        for j = 0 to len(s) - 1
+            checksum = checksum + s_bytes(j)
+        next i
+    wend
+    checksum = not checksum
+    checksum = checksum + 1
+    if current_fw_upg_state.fw_checksums(i) <> checksum then
+        sys.debugprint("The firmware update failed.")
+        exit sub
+    end if
+    fd.copyfirmwarefromfile()
+    #ELSE
+    fd.copyfirmware(current_fw_upg_state.fw_lengths(i)/256+1)
+    #ENDIF
+    end if
+
+    i=  get_firmware_index(COMPRESSED_TIOS_APP) 
+    if i >= 0  then 
+        fd.copyfirmwarelzo(YES)
+    end if
+
+    i =  get_firmware_index(UNCOMPRESSED_TIOS)  
+    if i >= 0  then 
+        #IFDEF FIRMWARE_UPGRADE_FILENAME
+        fd.open(FIRMWARE_UPGRADE_FILENAME)
+        fd.copyfirmwarefromfile()
+        #ELSE
+        fd.copyfirmware(current_fw_upg_state.fw_lengths(i)/256+1)
+        #ENDIF
+    end if
+
+    i =  get_firmware_index(TIOS_MON)  
+    if i >= 0  then 
+        'fd.copymonitor()
+    end if
+
+    sys.reboot()
+end sub
+
+
+sub var_TDoor_Master_update()
+    
+end sub
+            
+
+sub var_TDoor_Master_update_completed(value as float)
+    dim value_old as float = TDoor_Master
+    
+    
+    
+    TDoor_Master=value
+    if value_old <> TDoor_Master then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> TDoor_Master changed from " + ftofixed(value_old,4) + " to " +  ftofixed(TDoor_Master,4) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_TDoor_Master_set(value as float)
+    
+    
+    dim value_old as float = TDoor_Master
+    TDoor_Master=value
+    
+    
+
+    if value_old <> TDoor_Master then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> TDoor_Master changed from " + ftofixed(value_old,4) + " to " +  ftofixed(TDoor_Master,4) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_TCP_Port_update()
+    
+end sub
+            
+
+sub var_TCP_Port_update_completed(value as float)
+    dim value_old as float = TCP_Port
+    
+    
+    
+    TCP_Port=value
+    if value_old <> TCP_Port then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> TCP_Port changed from " + ftofixed(value_old,4) + " to " +  ftofixed(TCP_Port,4) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_TCP_Port_set(value as float)
+    
+    
+    dim value_old as float = TCP_Port
+    TCP_Port=value
+    
+    
+
+    if value_old <> TCP_Port then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> TCP_Port changed from " + ftofixed(value_old,4) + " to " +  ftofixed(TCP_Port,4) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T54_S9_L1_update()
+    
+    var_T54_S9_L1_update_completed(io.lineget(T54_S9_L1_num))
+end sub
+            
+
+sub var_T54_S9_L1_update_completed(value as boolean)
+    dim value_old as boolean = T54_S9_L1
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T54_S9_L1=value
+    if value_old <> T54_S9_L1 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S9_L1 changed from " + str(value_old) + " to " +  str(T54_S9_L1) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T54_S9_L1_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T54_S9_L1
+    T54_S9_L1=value
+    
+    
+    io.lineset(T54_S9_L1_num, value)
+
+    if value_old <> T54_S9_L1 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S9_L1 changed from " + str(value_old) + " to " +  str(T54_S9_L1) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T54_S9_L2_update()
+    
+    var_T54_S9_L2_update_completed(io.lineget(T54_S9_L2_num))
+end sub
+            
+
+sub var_T54_S9_L2_update_completed(value as boolean)
+    dim value_old as boolean = T54_S9_L2
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T54_S9_L2=value
+    if value_old <> T54_S9_L2 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S9_L2 changed from " + str(value_old) + " to " +  str(T54_S9_L2) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T54_S9_L2_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T54_S9_L2
+    T54_S9_L2=value
+    
+    
+    io.lineset(T54_S9_L2_num, value)
+
+    if value_old <> T54_S9_L2 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S9_L2 changed from " + str(value_old) + " to " +  str(T54_S9_L2) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T54_S9_L3_update()
+    
+    var_T54_S9_L3_update_completed(io.lineget(T54_S9_L3_num))
+end sub
+            
+
+sub var_T54_S9_L3_update_completed(value as boolean)
+    dim value_old as boolean = T54_S9_L3
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T54_S9_L3=value
+    if value_old <> T54_S9_L3 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S9_L3 changed from " + str(value_old) + " to " +  str(T54_S9_L3) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T54_S9_L3_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T54_S9_L3
+    T54_S9_L3=value
+    
+    
+    io.lineset(T54_S9_L3_num, value)
+
+    if value_old <> T54_S9_L3 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S9_L3 changed from " + str(value_old) + " to " +  str(T54_S9_L3) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T54_S9_L4_update()
+    
+    var_T54_S9_L4_update_completed(io.lineget(T54_S9_L4_num))
+end sub
+            
+
+sub var_T54_S9_L4_update_completed(value as boolean)
+    dim value_old as boolean = T54_S9_L4
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T54_S9_L4=value
+    if value_old <> T54_S9_L4 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S9_L4 changed from " + str(value_old) + " to " +  str(T54_S9_L4) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T54_S9_L4_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T54_S9_L4
+    T54_S9_L4=value
+    
+    
+    io.lineset(T54_S9_L4_num, value)
+
+    if value_old <> T54_S9_L4 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S9_L4 changed from " + str(value_old) + " to " +  str(T54_S9_L4) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T03_1_S1_L1_update()
+    
+    var_T03_1_S1_L1_update_completed(io.lineget(T03_1_S1_L1_num))
+end sub
+            
+
+sub var_T03_1_S1_L1_update_completed(value as boolean)
+    dim value_old as boolean = T03_1_S1_L1
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T03_1_S1_L1=value
+    if value_old <> T03_1_S1_L1 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T03_1_S1_L1 changed from " + str(value_old) + " to " +  str(T03_1_S1_L1) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T03_1_S1_L1_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T03_1_S1_L1
+    T03_1_S1_L1=value
+    
+    
+    io.lineset(T03_1_S1_L1_num, value)
+
+    if value_old <> T03_1_S1_L1 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T03_1_S1_L1 changed from " + str(value_old) + " to " +  str(T03_1_S1_L1) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T03_1_S1_L2_update()
+    
+    var_T03_1_S1_L2_update_completed(io.lineget(T03_1_S1_L2_num))
+end sub
+            
+
+sub var_T03_1_S1_L2_update_completed(value as boolean)
+    dim value_old as boolean = T03_1_S1_L2
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T03_1_S1_L2=value
+    if value_old <> T03_1_S1_L2 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T03_1_S1_L2 changed from " + str(value_old) + " to " +  str(T03_1_S1_L2) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T03_1_S1_L2_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T03_1_S1_L2
+    T03_1_S1_L2=value
+    
+    
+    io.lineset(T03_1_S1_L2_num, value)
+
+    if value_old <> T03_1_S1_L2 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T03_1_S1_L2 changed from " + str(value_old) + " to " +  str(T03_1_S1_L2) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T03_1_S3_L1_update()
+    
+    var_T03_1_S3_L1_update_completed(io.lineget(T03_1_S3_L1_num))
+end sub
+            
+
+sub var_T03_1_S3_L1_update_completed(value as boolean)
+    dim value_old as boolean = T03_1_S3_L1
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T03_1_S3_L1=value
+    if value_old <> T03_1_S3_L1 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T03_1_S3_L1 changed from " + str(value_old) + " to " +  str(T03_1_S3_L1) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T03_1_S3_L1_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T03_1_S3_L1
+    T03_1_S3_L1=value
+    
+    
+    io.lineset(T03_1_S3_L1_num, value)
+
+    if value_old <> T03_1_S3_L1 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T03_1_S3_L1 changed from " + str(value_old) + " to " +  str(T03_1_S3_L1) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T03_1_S3_L2_update()
+    
+    var_T03_1_S3_L2_update_completed(io.lineget(T03_1_S3_L2_num))
+end sub
+            
+
+sub var_T03_1_S3_L2_update_completed(value as boolean)
+    dim value_old as boolean = T03_1_S3_L2
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T03_1_S3_L2=value
+    if value_old <> T03_1_S3_L2 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T03_1_S3_L2 changed from " + str(value_old) + " to " +  str(T03_1_S3_L2) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T03_1_S3_L2_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T03_1_S3_L2
+    T03_1_S3_L2=value
+    
+    
+    io.lineset(T03_1_S3_L2_num, value)
+
+    if value_old <> T03_1_S3_L2 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T03_1_S3_L2 changed from " + str(value_old) + " to " +  str(T03_1_S3_L2) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T54_S7_L1_update()
+    
+    var_T54_S7_L1_update_completed(io.lineget(T54_S7_L1_num))
+end sub
+            
+
+sub var_T54_S7_L1_update_completed(value as boolean)
+    dim value_old as boolean = T54_S7_L1
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T54_S7_L1=value
+    if value_old <> T54_S7_L1 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S7_L1 changed from " + str(value_old) + " to " +  str(T54_S7_L1) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T54_S7_L1_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T54_S7_L1
+    T54_S7_L1=value
+    
+    
+    io.lineset(T54_S7_L1_num, value)
+
+    if value_old <> T54_S7_L1 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S7_L1 changed from " + str(value_old) + " to " +  str(T54_S7_L1) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T54_S7_L2_update()
+    
+    var_T54_S7_L2_update_completed(io.lineget(T54_S7_L2_num))
+end sub
+            
+
+sub var_T54_S7_L2_update_completed(value as boolean)
+    dim value_old as boolean = T54_S7_L2
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T54_S7_L2=value
+    if value_old <> T54_S7_L2 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S7_L2 changed from " + str(value_old) + " to " +  str(T54_S7_L2) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T54_S7_L2_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T54_S7_L2
+    T54_S7_L2=value
+    
+    
+    io.lineset(T54_S7_L2_num, value)
+
+    if value_old <> T54_S7_L2 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S7_L2 changed from " + str(value_old) + " to " +  str(T54_S7_L2) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T54_S7_L3_update()
+    
+    var_T54_S7_L3_update_completed(io.lineget(T54_S7_L3_num))
+end sub
+            
+
+sub var_T54_S7_L3_update_completed(value as boolean)
+    dim value_old as boolean = T54_S7_L3
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T54_S7_L3=value
+    if value_old <> T54_S7_L3 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S7_L3 changed from " + str(value_old) + " to " +  str(T54_S7_L3) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T54_S7_L3_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T54_S7_L3
+    T54_S7_L3=value
+    
+    
+    io.lineset(T54_S7_L3_num, value)
+
+    if value_old <> T54_S7_L3 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S7_L3 changed from " + str(value_old) + " to " +  str(T54_S7_L3) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T54_S7_L4_update()
+    
+    var_T54_S7_L4_update_completed(io.lineget(T54_S7_L4_num))
+end sub
+            
+
+sub var_T54_S7_L4_update_completed(value as boolean)
+    dim value_old as boolean = T54_S7_L4
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T54_S7_L4=value
+    if value_old <> T54_S7_L4 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S7_L4 changed from " + str(value_old) + " to " +  str(T54_S7_L4) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T54_S7_L4_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T54_S7_L4
+    T54_S7_L4=value
+    
+    
+    io.lineset(T54_S7_L4_num, value)
+
+    if value_old <> T54_S7_L4 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T54_S7_L4 changed from " + str(value_old) + " to " +  str(T54_S7_L4) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T03_1_S5_L1_update()
+    
+    var_T03_1_S5_L1_update_completed(io.lineget(T03_1_S5_L1_num))
+end sub
+            
+
+sub var_T03_1_S5_L1_update_completed(value as boolean)
+    dim value_old as boolean = T03_1_S5_L1
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T03_1_S5_L1=value
+    if value_old <> T03_1_S5_L1 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T03_1_S5_L1 changed from " + str(value_old) + " to " +  str(T03_1_S5_L1) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T03_1_S5_L1_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T03_1_S5_L1
+    T03_1_S5_L1=value
+    
+    
+    io.lineset(T03_1_S5_L1_num, value)
+
+    if value_old <> T03_1_S5_L1 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T03_1_S5_L1 changed from " + str(value_old) + " to " +  str(T03_1_S5_L1) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_T03_1_S5_L2_update()
+    
+    var_T03_1_S5_L2_update_completed(io.lineget(T03_1_S5_L2_num))
+end sub
+            
+
+sub var_T03_1_S5_L2_update_completed(value as boolean)
+    dim value_old as boolean = T03_1_S5_L2
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    T03_1_S5_L2=value
+    if value_old <> T03_1_S5_L2 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T03_1_S5_L2 changed from " + str(value_old) + " to " +  str(T03_1_S5_L2) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_T03_1_S5_L2_set(value as boolean)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as boolean = T03_1_S5_L2
+    T03_1_S5_L2=value
+    
+    
+    io.lineset(T03_1_S5_L2_num, value)
+
+    if value_old <> T03_1_S5_L2 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> T03_1_S5_L2 changed from " + str(value_old) + " to " +  str(T03_1_S5_L2) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_stg1_update()
+    
+end sub
+            
+
+sub var_stg1_update_completed(byref value as string)
+    dim value_old as string = stg1
+    
+    
+    
+    stg1=value
+    if value_old <> stg1 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> stg1 changed from " + value_old + " to " +  stg1 + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_stg1_set(byref value as string)
+    
+    
+    dim value_old as string = stg1
+    stg1=value
+    stg_set("stg1", 0, value)
+    
+
+    if value_old <> stg1 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> stg1 changed from " + value_old + " to " +  stg1 + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_DN_update()
+    
+end sub
+            
+
+sub var_DN_update_completed(byref value as string)
+    dim value_old as string = DN
+    
+    
+    
+    DN=value
+    if value_old <> DN then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> DN changed from " + value_old + " to " +  DN + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_DN_set(byref value as string)
+    
+    
+    dim value_old as string = DN
+    DN=value
+    stg_set("DN", 0, value)
+    
+
+    if value_old <> DN then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> DN changed from " + value_old + " to " +  DN + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_ON_update()
+    
+end sub
+            
+
+sub var_ON_update_completed(byref value as string)
+    dim value_old as string = ON
+    
+    
+    
+    ON=value
+    if value_old <> ON then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> ON changed from " + value_old + " to " +  ON + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_ON_set(byref value as string)
+    
+    
+    dim value_old as string = ON
+    ON=value
+    stg_set("ON", 0, value)
+    
+
+    if value_old <> ON then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> ON changed from " + value_old + " to " +  ON + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_PW_update()
+    
+end sub
+            
+
+sub var_PW_update_completed(byref value as string)
+    dim value_old as string = PW
+    
+    
+    
+    PW=value
+    if value_old <> PW then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> PW changed from " + value_old + " to " +  PW + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_PW_set(byref value as string)
+    
+    
+    dim value_old as string = PW
+    PW=value
+    stg_set("PW", 0, value)
+    
+
+    if value_old <> PW then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> PW changed from " + value_old + " to " +  PW + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_t1_update()
+    
+end sub
+            
+
+sub var_t1_update_completed(value as dword)
+    dim value_old as dword = t1
+    
+    
+    
+    t1=value
+    if value_old <> t1 then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> t1 changed from " + lstr(value_old) + " to " +  lstr(t1) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_t1_set(value as dword)
+    
+    
+    dim value_old as dword = t1
+    t1=value
+    
+    
+    
+    timer_t1 = sys.timercountms + t1 * 1000
+            
+
+    if value_old <> t1 then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> t1 changed from " + lstr(value_old) + " to " +  lstr(t1) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_NETCP_update()
+    
+end sub
+            
+
+sub var_NETCP_update_completed(value as float)
+    dim value_old as float = NETCP
+    
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    NETCP=value
+    if value_old <> NETCP then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> NETCP changed from " + ftofixed(value_old,4) + " to " +  ftofixed(NETCP,4) + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_NETCP_set(value as float)
+    if value < 0 then value = 0
+    if value > 1 then value = 1
+    dim value_old as float = NETCP
+    NETCP=value
+    stg_set("NETCP", 0, ftofixed(value,4))
+    
+
+    if value_old <> NETCP then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> NETCP changed from " + ftofixed(value_old,4) + " to " +  ftofixed(NETCP,4) + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_NETIP_update()
+    
+end sub
+            
+
+sub var_NETIP_update_completed(byref value as string)
+    dim value_old as string = NETIP
+    
+    
+    
+    NETIP=value
+    if value_old <> NETIP then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> NETIP changed from " + value_old + " to " +  NETIP + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_NETIP_set(byref value as string)
+    
+    
+    dim value_old as string = NETIP
+    NETIP=value
+    stg_set("NETIP", 0, value)
+    
+
+    if value_old <> NETIP then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> NETIP changed from " + value_old + " to " +  NETIP + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_NETNM_update()
+    
+end sub
+            
+
+sub var_NETNM_update_completed(byref value as string)
+    dim value_old as string = NETNM
+    
+    
+    
+    NETNM=value
+    if value_old <> NETNM then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> NETNM changed from " + value_old + " to " +  NETNM + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_NETNM_set(byref value as string)
+    
+    
+    dim value_old as string = NETNM
+    NETNM=value
+    stg_set("NETNM", 0, value)
+    
+
+    if value_old <> NETNM then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> NETNM changed from " + value_old + " to " +  NETNM + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub var_NETGW_update()
+    
+end sub
+            
+
+sub var_NETGW_update_completed(byref value as string)
+    dim value_old as string = NETGW
+    
+    
+    
+    NETGW=value
+    if value_old <> NETGW then
+        
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> NETGW changed from " + value_old + " to " +  NETGW + "\r\n")
+        #endif
+    end if
+    
+end sub
+            
+
+sub var_NETGW_set(byref value as string)
+    
+    
+    dim value_old as string = NETGW
+    NETGW=value
+    stg_set("NETGW", 0, value)
+    
+
+    if value_old <> NETGW then
+        #if VARIABLES_DEBUG_PRINT
+            sys.debugprint("VAR> NETGW changed from " + value_old + " to " +  NETGW + "\r\n")
+        #endif
+        
+        
+    end if
+end sub
+            
+
+sub timer_t1_update()
+    if timer_t1<>0 then
+        'if timer_t1=0 then
+        '    timer_t1=sys.timercountms+t1*1000
+        'end if
+        dim timercountms as dword=sys.timercountms
+        if timercountms<timer_t1 then
+            dim remainder as dword=timer_t1-timercountms
+            remainder=remainder/1000
+            if remainder=0 then
+                remainder=1
+            end if
+            var_t1_update_completed(remainder)
+        else
+            var_t1_set(0)
+            timer_t1=0
+            
+            if timer_t1_repeat then
+                timer_t1=sys.timercountms+timer_t1_CURRENT_MS
+                t1=timer_t1_CURRENT_MS / 1000
+                if t1 = 0 AND t1 > 0 then
+                    t1 = 1
+                end if
+            end if
+        end if
+        
+    end if
+    
+end sub
+
+sub cmd_CMD1(byref data as string)
+
+end sub
+
+
+#IFDEF TBL_MAX_NUM_TABLES
+sub tables_web_proc_sock_data_sent()
+    dim index as byte=http_server_get(sock.num)
+    if index<>255 then
+        if http_servers(index).state=HTTP_SERVER_STATE_RS_BODY_CONTENT then
+            dim server as http_server_state=http_servers(index)
+            'for returning table rows
+            dim tbl_rows, tbl_rows_all as word
+            dim i as word
+            dim j, num_of_fld as byte
+            dim tmp_data as string=server.request_path
+            dim is_json as boolean=instr(1,server.request_file_name,"api/tables",1)>=1
+            if server.request_method<>"GET" then
+                tmp_data=server.request_value_buffer
+            end if
+            dim table_name as string=http_server_find_param(tmp_data,"table")
+            tbl_get_table_active_rows(table_name, tbl_rows, tbl_rows_all)
+            num_of_fld = tbl_all_get_num_fields(table_name)
+            dim row_num as word=server.request_read_pos
+            dim reached_end as boolean=false
+            if tbl_all_is_in_memory(table_name)=NO then
+                tbl_record_read_active(row_num)
+                'tbl_record_read_active wraps around if the next record is not found
+                if row_num<server.request_read_pos then
+                    reached_end=true
+                    tbl_close(table_name)
+                end if
+            else
+                if tbl_rows_all<server.request_read_pos then
+                    reached_end=true
+                end if
+            end if
+            dim count as word=val(http_server_find_param(tmp_data,"count"))
+            dim offset as word=val(http_server_find_param(tmp_data,"offset")) + 1
+            tmp_data=""
+            if reached_end then
+                http_servers(index).state=HTTP_SERVER_STATE_RS_BODY
+                if is_json then
+                    sock.setdata("]")
+                    sock.send()
+                end if
+                sock.notifysent(0)
+                exit sub
+            end if
+            if count=0 then
+                'return all rows
+                if is_json then
+                    tmp_data=tbl_get_row_json(table_name, row_num, num_of_fld)
+                    if server.request_read_pos<tbl_rows then
+                        tmp_data=tmp_data+","
+                    end if
+                else
+                    tmp_data=tbl_get_row_csv(table_name, row_num, num_of_fld)+"\r\n"
+                end if
+                sock.setdata(tmp_data)
+                sock.send()
+            else
+                if row_num < (offset + count) then
+                    if is_json then
+                        tmp_data=tbl_get_row_json(table_name, row_num, num_of_fld)
+                        if row_num<=tbl_rows then
+                            tmp_data=tmp_data+","
+                        end if
+                    else
+                        tmp_data=tbl_get_row_csv(table_name, row_num, num_of_fld)+"\r\n"
+                    end if
+                    sock.setdata(tmp_data)
+                    sock.send()
+                end if
+            end if
+            http_servers(index).request_read_pos=row_num+1
+            sock.notifysent(sock.txbuffsize-len(tmp_data))
+            
+        end if
+    end if
+end sub
+#ENDIF
+
+sub callback_login_event(mode as cmd_modes)
+    
+end sub
+            
+
+function callback_get_timeout(mode as cmd_modes) as word
+
+    select case mode
+    case CMD_MODE_NONE:
+
+    case CMD_MODE_UDP:
+        goto get_timeout
+    case else
+get_timeout:
+        callback_get_timeout=LOGIN_TIMEOUT
+    end select
+
+end function
+            

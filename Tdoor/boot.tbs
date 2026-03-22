@@ -1,0 +1,326 @@
+include "global.tbh"
+
+
+
+sub boot()
+
+    'Setting Library Initialization
+    '================================================================
+    dim stg_init_code as en_stg_status_codes
+    dim stg_name as string(STG_MAX_SETTING_NAME_LEN)
+    if stg_start()<>EN_STG_STATUS_OK then 
+        pat.play("R-R-~",PL_PAT_CANINT)
+        sys.debugprint("stg_start failed")
+        sys.halt
+    end if
+    stg_init_code=stg_check_all(stg_name)
+    select case stg_init_code
+    case EN_STG_STATUS_OK:
+    '--- all good ---
+    case EN_STG_STATUS_INVALID, EN_STG_STATUS_FAILURE:
+        sys.debugprint("Settings initialization failed, restoring default values")
+        if stg_restore_multiple(EN_STG_INIT_MODE_NORMAL)<>EN_STG_STATUS_OK then 
+            pat.play("R-R-~",PL_PAT_CANINT)
+            sys.debugprint("stg_restore_multiple failed")
+            sys.halt
+        end if
+    case else:
+        'some other trouble
+        pat.play("R-R-~",PL_PAT_CANINT)
+        sys.debugprint("stg_check_all failed")
+        sys.halt
+    end select
+    '-----------------------------------------------------------------
+stg1=stg_get("stg1",0)
+DN=stg_get("DN",0)
+ON=stg_get("ON",0)
+PW=stg_get("PW",0)
+NETCP=string_to_float(stg_get("NETCP",0))
+NETIP=stg_get("NETIP",0)
+NETNM=stg_get("NETNM",0)
+NETGW=stg_get("NETGW",0)
+
+    'Fd(flash disk) setup
+    '================================================================
+    if fd.mount<>PL_FD_STATUS_OK then
+        dim fd_size as dword = fd.availableflashspace/4*3
+        if fd.formatj(fd_size,32,100)<>PL_FD_STATUS_OK then
+            sys.debugprint("fd.formatj failed")
+            sys.halt
+        end if
+    
+        if fd.mount<>PL_FD_STATUS_OK then
+            sys.debugprint("fd.mount failed")
+            sys.halt
+        end if
+        if fd.totalsize < fd_size then
+            sys.debugprint("fd.mount failed")
+            sys.halt
+        end if
+    end if
+    '-----------------------------------------------------------------
+
+    'Tables setup
+    '================================================================
+    if tbl_start()<>EN_TBL_STATUS_OK then
+        callback_system_error("TBL", "Failed to start")
+        sys.halt()
+    end if
+    '-----------------------------------------------------------------
+
+    tbl_web_start()
+    dim schema_changed as boolean = false
+    tbl_web_set("DEBUG",true)
+tbl_web_set("LOG",true)
+
+
+
+    if tbl_schema_check(TBL_DESCRIPTOR_FILE)<>EN_TBL_STATUS_OK then
+        schema_changed = YES
+    end if
+
+    if schema_changed= YES then
+        callback_system_error("TBL", "Schema changed, formatting flash")
+        if fd.formatj(fd.availableflashspace/4*3,32,100)<>PL_FD_STATUS_OK then
+            callback_system_error("TBL", "Failed to format flash")
+            sys.halt()
+        end if
+        if tbl_start()<>EN_TBL_STATUS_OK then
+            callback_system_error("TBL", "Failed to start")
+            sys.halt()
+        end if
+        if tbl_schema_check(TBL_DESCRIPTOR_FILE)<>EN_TBL_STATUS_OK then
+            callback_system_error("TBL", "Failed to check schema")
+            sys.halt()
+        end if
+    end if
+
+'LCD setup
+'================================================================
+lcd.width=320
+lcd.height=240
+
+
+io.num=PL_IO_NUM_55
+io.enabled=YES
+io.num=PL_IO_NUM_43
+io.enabled=YES
+io.num=PL_IO_NUM_42
+io.enabled=YES
+io.num=PL_IO_NUM_41
+io.enabled=YES
+io.num=PL_IO_NUM_40
+io.enabled=YES
+lcd.iomapping="55,43,42,41,40,0" 'RST,DC,WR,RD,CS,data_bus
+lcd.rotated=YES 'yes, the LCD is installed up side down
+'backlight ON
+io.num=PL_IO_NUM_54 
+io.enabled=YES
+io.state=LOW
+
+
+lcd.enabled=YES
+lcd.forecolor=&h1f
+lcd.lock
+lcd.fill(0,0,lcd.width,lcd.height)
+lcd.unlock
+'sets font used to draw text
+romfile.open(LOG_FONT_FILE)
+lcd.setfont(romfile.offset)
+'-----------------------------------------------------------------
+
+
+lcd_init_widgets()
+lcd_display_widgets(0)
+
+    ' Set the timezone to UTC+01:00
+    APP_TIMEZONE="15"
+    datetime_tz_offset=APP_TIMEZONE
+    APP_LATITUDE=0
+    datetime_lat=APP_LATITUDE
+    APP_LONGITUDE=0
+    datetime_lng=APP_LONGITUDE
+current_interface = PL_SOCK_INTERFACE_NULL
+    sys.onsystimerperiod=50
+    #IF SYS_VER <> 1000 AND WATCHDOG_ENABLED
+        sys.wdenabled=YES
+        sys.wdautoreset=DISABLED
+        sys.wdperiod=1000
+    #ENDIF
+
+    dim f as byte
+    for f=0 to MAX_NUM_INTERFACES-1
+        interface_ready(f)=NO
+    next f
+
+    beep.divider = 11111
+APP_LOGGING="tbl_log"
+
+    'Ethernet setup
+    '================================================================
+    device_net_ip = NETIP
+    device_net_mask = NETNM
+    device_net_gateway = NETGW
+    
+    dim dhcp_enabled as string(1) = NETCP
+
+    if dhcp_enabled = "1" then
+        net_dhcp_enabled = true
+    else
+        net_dhcp_enabled = false
+    end if
+    
+
+    if net_dhcp_enabled = false then
+        net.ip=device_net_ip
+        net.netmask=device_net_mask
+        net.gatewayip=device_net_gateway
+    else
+        'ethernet dhcp
+        dhcp_start(PL_SOCK_INTERFACE_NET,device_net_ip,"")
+    end if
+    '-----------------------------------------------------------------
+
+    'DNS setup
+    '================================================================
+    DNS_socket=sock_get("DNS")
+    dns_start(DNS_socket)
+    'Making a DNS query:
+    'dns_connect(PL_SOCK_INTERFACE_NET, "8.8.4.4",0)
+    'dns_query("google.com")
+    'get the response in callback_dns_answer_acquired
+    '-----------------------------------------------------------------
+
+    http_start()
+
+    'SNTP setup
+    '================================================================
+    SNTP_socket=sock_get("NTP")
+    sntp_init()
+    SNTP_SERVER="192.168.0.3"
+    '-----------------------------------------------------------------
+	var_poll_timer = 1000
+                        
+    
+    'Tibbit Tibbit 54 setup on socket 9
+    io.num=T54_S9_L1_num
+    io.enabled=NO
+                        
+    
+    io.num=T54_S9_L2_num
+    io.enabled=NO
+                        
+    
+    io.num=T54_S9_L3_num
+    io.enabled=NO
+                        
+    
+    io.num=T54_S9_L4_num
+    io.enabled=NO
+                        
+    
+    'Tibbit Tibbit 03_1 setup on socket 1
+    io.num=T03_1_S1_L1_num
+    io.enabled=YES
+    io.state=HIGH
+                        
+    
+    io.num=T03_1_S1_L2_num
+    io.enabled=YES
+    io.state=HIGH
+                        
+    
+    'Tibbit Tibbit 03_1 setup on socket 3
+    io.num=T03_1_S3_L1_num
+    io.enabled=YES
+    io.state=HIGH
+                        
+    
+    io.num=T03_1_S3_L2_num
+    io.enabled=YES
+    io.state=HIGH
+                        
+    
+    'Tibbit Tibbit 54 setup on socket 7
+    io.num=T54_S7_L1_num
+    io.enabled=NO
+                        
+    
+    io.num=T54_S7_L2_num
+    io.enabled=NO
+                        
+    
+    io.num=T54_S7_L3_num
+    io.enabled=NO
+                        
+    
+    io.num=T54_S7_L4_num
+    io.enabled=NO
+                        
+    
+    'Tibbit Tibbit 03_1 setup on socket 5
+    io.num=T03_1_S5_L1_num
+    io.enabled=YES
+    io.state=HIGH
+                        
+    
+    io.num=T03_1_S5_L2_num
+    io.enabled=YES
+    io.state=HIGH
+
+    'Sock S1 connection setup
+    '================================================================
+    S1_SOCK_NUM=sock_get("S1")
+    sock.num=S1_SOCK_NUM
+    sock.protocol=PL_SOCK_PROTOCOL_TCP
+    sock.inconmode=PL_SOCK_INCONMODE_NONE
+    sock.allowedinterfaces="undefined"
+    sock.txbuffrq(1)
+    sock.rxbuffrq(1)
+    sys.buffalloc()
+    sock.targetinterface=current_interface
+    sock.targetip="10.80.0.105"
+    sock.targetport=6480
+    'sock.connect()
+    'dim time_out as dword=sys.timercountms + 3000
+    'while sock.statesimple<>PL_SSTS_EST and sys.timercountms<time_out   
+    'wend
+    'if sock.statesimple=PL_SSTS_EST then
+    '    sys.debugprint("connected to server\r\n")
+    'else
+    '    sys.debugprint("could not connect to server\r\n")
+    'end if
+    '-----------------------------------------------------------------
+
+http_server_password = ""
+
+    net_cmd_init()
+    init_x_flags()
+
+
+TIOS_VERSION=mid(sys.version, 2,len(sys.version) - 2)
+
+
+#IF SYS_VER <> 1000 AND PLATFORM_ID<>EM510W
+if sys.extresettype=PL_SYS_EXT_RESET_TYPE_WATCHDOG then
+    sys.debugprint("System reset by watchdog\r\n")
+else if sys.extresettype=PL_SYS_EXT_RESET_TYPE_BROWNOUT then
+    sys.debugprint("System reset by brownout\r\n")
+end if
+#ENDIF
+
+
+    pat.play("B-B-B-",PL_PAT_CANINT)
+
+if net.linkstate<>PL_NET_LINKSTAT_NOLINK AND net_dhcp_enabled = false then
+    interface_set(PL_SOCK_INTERFACE_NET,YES)
+end if
+
+
+dim time_now as dword = datetime_current_timestamp()
+
+
+sys.debugprint("Tutto ok!"+ "\r\n")
+
+
+end sub

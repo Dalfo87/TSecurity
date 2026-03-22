@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Door Sensus Control Unit</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg-deep:#0b0e14;--bg-panel:#111520;--bg-card:#161b28;--bg-row:#1a2035;--bg-hover:#1f2640;--border:#252d42;--border-light:#2e3a54;--text-pri:#e2e8f5;--text-sec:#7a8fad;--text-dim:#3d4f6a;--amber:#f0a030;--amber-dim:#7d521a;--amber-glow:rgba(240,160,48,0.15);--green:#28c76f;--green-dim:#15623a;--green-glow:rgba(40,199,111,0.12);--red:#ea4a5a;--red-dim:#6b1f26;--red-glow:rgba(234,74,90,0.12);--yellow:#f5c518;--yellow-dim:#6b5508;--sidebar-w:210px;--top-h:52px;--status-h:82px;--font-ui:'Trebuchet MS','Segoe UI',sans-serif;--font-mono:'Courier New','Lucida Console',monospace}
+body{font-family:var(--font-ui);background:var(--bg-deep);color:var(--text-pri);min-height:100vh;overflow:hidden}
+#login-page{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg-deep);z-index:1000}
+.login-box{position:relative;background:var(--bg-panel);border:1px solid var(--border-light);border-top:3px solid var(--amber);padding:40px 48px;width:360px;box-shadow:0 24px 64px rgba(0,0,0,0.6)}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+.login-logo-icon{font-size:36px;flex-shrink:0}
+.login-logo-text{font-size:11px;text-transform:uppercase;color:var(--text-sec);line-height:1.4}
+.login-logo-text strong{display:block;font-size:14px;color:var(--text-pri)}
+.login-title{font-size:22px;font-weight:700;color:var(--text-pri);margin-bottom:6px}
+.login-sub{font-size:12px;color:var(--text-sec);margin-bottom:28px}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:11px;text-transform:uppercase;color:var(--text-sec);margin-bottom:8px}
+.form-group input[type="password"],.form-group input[type="text"],.form-group input[type="number"],select,textarea{width:100%;background:var(--bg-deep);border:1px solid var(--border-light);color:var(--text-pri);padding:10px 14px;font-family:var(--font-mono);font-size:14px;outline:none;border-radius:2px}
+.form-group input:focus,select:focus,textarea:focus{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-glow)}
+.btn-login{width:100%;background:var(--amber);color:var(--bg-deep);border:none;padding:12px;font-family:var(--font-ui);font-size:13px;font-weight:700;text-transform:uppercase;cursor:pointer;margin-top:8px;border-radius:2px}
+.btn-login:hover{background:#f5b040}
+.btn-login:active{transform:scale(0.99)}
+.login-error{color:var(--red);font-size:12px;margin-top:10px;display:none;text-align:center}
+#app{display:none;position:fixed;inset:0;flex-direction:column}
+#app.visible{display:flex}
+.topbar{height:var(--top-h);background:var(--bg-panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;z-index:100}
+.topbar-logo{font-size:24px;flex-shrink:0}
+.topbar-brand{font-size:13px;font-weight:700;text-transform:uppercase;color:var(--text-pri);flex-shrink:0}
+.topbar-device{font-family:var(--font-mono);font-size:12px;color:var(--amber)}
+.topbar-spacer{flex:1}
+.btn-logout{font-size:11px;text-transform:uppercase;color:var(--text-sec);background:transparent;border:1px solid var(--border-light);padding:6px 14px;cursor:pointer;border-radius:2px;font-family:var(--font-ui)}
+.btn-logout:hover{border-color:var(--red);color:var(--red)}
+.body-area{flex:1;display:flex;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--bg-panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.sidebar-section{padding:8px 0;border-bottom:1px solid var(--border)}
+.sidebar-section:last-child{border-bottom:none}
+.sidebar-label{font-size:10px;text-transform:uppercase;color:var(--text-dim);padding:10px 18px 6px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;font-size:13px;color:var(--text-sec);border-left:2px solid transparent}
+.nav-item:hover{background:var(--bg-hover);color:var(--text-pri)}
+.nav-item.active{background:var(--bg-row);color:var(--amber);border-left-color:var(--amber)}
+.nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.content-area{flex:1;overflow-y:auto;padding:28px 32px;background:var(--bg-deep)}
+.page{display:none}
+.page.active{display:block}
+.page-header{display:flex;align-items:baseline;gap:14px;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.page-title{font-size:20px;font-weight:700;color:var(--text-pri)}
+.page-subtitle{font-size:12px;color:var(--text-sec)}
+.card{background:var(--bg-card);border:1px solid var(--border);margin-bottom:20px;overflow:hidden}
+.card-header{display:flex;align-items:center;gap:10px;padding:12px 18px;background:var(--bg-row);border-bottom:1px solid var(--border);font-size:12px;text-transform:uppercase;color:var(--text-sec);font-weight:700}
+.card-body{padding:18px}
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{text-align:left;font-size:10px;text-transform:uppercase;color:var(--text-dim);padding:8px 12px;border-bottom:1px solid var(--border);font-weight:700}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text-pri);vertical-align:middle}
+.data-table tr:hover td{background:var(--bg-hover)}
+.mono{font-family:var(--font-mono);font-size:12px}
+.form-row{display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.form-row label{font-size:12px;color:var(--text-sec)}
+.form-row input,.form-row select,.form-row textarea{background:var(--bg-deep);border:1px solid var(--border-light);color:var(--text-pri);padding:7px 12px;font-family:var(--font-mono);font-size:13px;outline:none;width:100%;border-radius:2px}
+.form-row input:focus,.form-row select:focus{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-glow)}
+.form-row select{cursor:pointer}
+select option{background:var(--bg-panel)}
+.form-note{font-size:11px;color:var(--text-dim);margin-top:3px}
+.btn{padding:8px 16px;font-family:var(--font-ui);font-size:12px;font-weight:700;text-transform:uppercase;cursor:pointer;border-radius:2px;border:1px solid transparent}
+.btn-primary{background:var(--amber);color:var(--bg-deep);border-color:var(--amber)}
+.btn-primary:hover{background:#f5b040}
+.btn-secondary{background:transparent;color:var(--text-sec);border-color:var(--border-light)}
+.btn-secondary:hover{border-color:var(--text-sec);color:var(--text-pri)}
+.btn-danger{background:transparent;color:var(--red);border-color:var(--red-dim)}
+.btn-danger:hover{background:var(--red-glow)}
+.btn-success{background:transparent;color:var(--green);border-color:var(--green-dim)}
+.btn-success:hover{background:var(--green-glow)}
+.btn-group{display:flex;gap:8px;margin-top:20px}
+.btn-sm{padding:4px 10px;font-size:11px}
+.ti{background:var(--bg-deep);border:1px solid var(--border);color:var(--text-pri);padding:4px 7px;font-family:var(--font-mono);font-size:12px;outline:none;border-radius:2px}
+.ti-w{width:100px}.ti-m{width:120px}.ti-f{width:100%}
+.status-bar{height:var(--status-h);background:var(--bg-panel);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:6px;flex-shrink:0;overflow-x:auto}
+.status-section-label{font-size:9px;text-transform:uppercase;color:var(--text-dim);font-weight:700;padding:0 4px;white-space:nowrap}
+.status-divider{width:1px;height:40px;background:var(--border-light);flex-shrink:0;margin:0 6px}
+.port-in{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:default;padding:8px 6px;border-radius:3px;border:1px solid transparent;min-width:56px;flex-shrink:0;position:relative}
+.port-in .port-name{font-family:var(--font-mono);font-size:9px;color:var(--text-sec);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52px}
+.port-in .port-light{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.port-in .port-label{font-size:8px;font-weight:700}
+.port-in.closed .port-light{background:var(--green-dim);color:var(--green)}
+.port-in.closed .port-label{color:var(--green)}
+.port-in.open .port-light{background:var(--red-dim);color:var(--red)}
+.port-in.open .port-label{color:var(--red)}
+.port-in.alarm .port-light{background:var(--red-dim);color:var(--red)}
+.port-in.alarm .port-label{color:var(--red)}
+.port-out{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px;border-radius:3px;border:1px solid transparent;min-width:56px;flex-shrink:0;position:relative}
+.port-out .port-name{font-family:var(--font-mono);font-size:9px;color:var(--text-sec);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52px}
+.port-out .port-toggle{width:40px;height:20px;border-radius:10px;border:1px solid var(--border-light);background:var(--bg-deep);cursor:pointer;position:relative;display:block}
+.port-out .port-toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--text-dim)}
+.port-out.on .port-toggle{background:var(--green-dim);border-color:var(--green)}
+.port-out.on .port-toggle::after{transform:translateX(20px);background:var(--green)}
+.port-out .port-label{font-size:8px;font-weight:700;color:var(--text-dim)}
+.port-out.on .port-label{color:var(--green)}
+#inputs-table{min-width:860px}
+#inputs-table td,#inputs-table th{white-space:nowrap}
+.log-entry{font-family:var(--font-mono);font-size:12px}
+.log-ts{color:var(--text-dim)}
+.log-ev-open{color:var(--green)}
+.log-ev-close{color:var(--amber)}
+.log-ev-alarm{color:var(--red)}
+.maint-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.maint-card{background:var(--bg-card);border:1px solid var(--border);padding:20px;display:flex;flex-direction:column;gap:10px}
+.maint-card-title{font-size:13px;font-weight:700;color:var(--text-pri)}
+.version-strip{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-size:11px;color:var(--text-sec);padding:8px 12px;background:var(--bg-deep);border:1px solid var(--border);margin-bottom:16px}
+.version-strip span{color:var(--amber)}
+</style>
+</head>
+<body>
+<div id="login-page">
+<div class="login-box">
+<div class="login-logo">
+<span class="login-logo-icon">🔐</span>
+<div class="login-logo-text"><strong>Door Sensus Control Unit</strong></div>
+</div>
+<div class="login-title">Accesso</div>
+<div class="login-sub">Inserire la password per continuare</div>
+<div class="form-group">
+<label>Password</label>
+<input type="password" id="pw-input" maxlength="12" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()">
+</div>
+<button class="btn-login" onclick="doLogin()">Accedi</button>
+<div class="login-error" id="login-error">Password errata. Riprovare.</div>
+</div>
+</div>
+<div id="app">
+<div class="topbar">
+<span class="topbar-logo">🔐</span>
+<div class="topbar-brand">Door Sensus Control Unit</div>
+<div class="topbar-device">192.168.1.40 — DSControlUnit</div>
+<div class="topbar-spacer"></div>
+<button class="btn-logout" onclick="doLogout()">Esci</button>
+</div>
+<div class="body-area">
+<div class="sidebar">
+<div class="sidebar-section">
+<div class="sidebar-label">Configurazione</div>
+<div class="nav-item active" onclick="showPage('p-ingressi',this)"><span class="nav-icon">⬤</span> Ingressi</div>
+<div class="nav-item" onclick="showPage('p-uscite',this)"><span class="nav-icon">◉</span> Uscite</div>
+<div class="nav-item" onclick="showPage('p-rete',this)"><span class="nav-icon">◈</span> Rete</div>
+<div class="nav-item" onclick="showPage('p-integrazioni',this)"><span class="nav-icon">◈</span> Integrazioni</div>
+</div>
+<div class="sidebar-section">
+<div class="sidebar-label">Sistema</div>
+<div class="nav-item" onclick="showPage('p-manutenzione',this)"><span class="nav-icon">⚙</span> Manutenzione</div>
+<div class="nav-item" onclick="showPage('p-log',this)"><span class="nav-icon">≡</span> Log eventi</div>
+</div>
+</div>
+<div class="content-area">
+<div class="page active" id="p-ingressi">
+<div class="page-header"><div class="page-title">Ingressi</div><div class="page-subtitle">Configurazione ingressi digitali</div></div>
+<div class="card">
+<div class="card-header">⬤ Configurazione ingressi</div>
+<div class="card-body" style="padding:0;overflow-x:auto">
+<table class="data-table" id="inputs-table">
+<thead><tr><th style="width:36px">#</th><th style="min-width:110px">Nome</th><th style="min-width:130px">Nome Milestone</th><th style="min-width:100px">Link Output</th><th style="min-width:170px">Stato Porta Associato</th><th style="min-width:80px">Input Type</th><th style="min-width:110px">Alarm On Muted</th><th style="min-width:60px">Salva</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+<div class="btn-group"><button class="btn btn-primary" onclick="saveAllInputs()">Salva Tutti</button></div>
+</div>
+<div class="page" id="p-uscite">
+<div class="page-header"><div class="page-title">Uscite</div><div class="page-subtitle">Configurazione e controllo relè</div></div>
+<div class="card">
+<div class="card-header">◉ Stato relè</div>
+<div class="card-body" style="padding:0">
+<table class="data-table" id="outputs-table">
+<thead><tr><th>Uscita</th><th style="min-width:160px">Nome</th><th>Tipo</th><th>Stato</th><th>Controllo</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+<div class="btn-group"><button class="btn btn-primary" onclick="toast('Configurazione uscite salvata')">Salva</button></div>
+</div>
+<div class="page" id="p-rete">
+<div class="page-header"><div class="page-title">Rete</div><div class="page-subtitle">Configurazione Ethernet</div></div>
+<div class="card">
+<div class="card-header">◈ Ethernet</div>
+<div class="card-body">
+<div class="form-row"><label>Nome dispositivo</label><input type="text" value="DSControlUnit"></div>
+<div class="form-row"><label>DHCP</label><select onchange="toggleDHCP(this)"><option value="0">Disabilitato</option><option value="1" selected>Abilitato</option></select></div>
+<div class="form-row" id="row-ip"><label>Indirizzo IP</label><input type="text" value="192.168.1.40" id="inp-ip"></div>
+<div class="form-row" id="row-gw"><label>Gateway</label><input type="text" value="1.0.0.1" id="inp-gw"></div>
+<div class="form-row" id="row-nm"><label>Subnet mask</label><input type="text" value="255.255.255.0" id="inp-nm"></div>
+<div class="form-row"><label>Server NTP</label><input type="text" value="1.0.0.1"></div>
+<div class="btn-group"><button class="btn btn-primary" onclick="toast('Configurazione rete salvata. Riavvio necessario.')">Salva</button></div>
+</div>
+</div>
+</div>
+<div class="page" id="p-integrazioni">
+<div class="page-header"><div class="page-title">Integrazioni</div><div class="page-subtitle">Milestone VMS e Xovis</div></div>
+<div class="card">
+<div class="card-header">▶ Milestone VMS — Connessione server</div>
+<div class="card-body">
+<div class="form-row"><label>Indirizzo IP server</label><input type="text" value="" placeholder="0.0.0.0"></div>
+<div class="form-row"><label>Porta</label><input type="number" value="1238"></div>
+<div class="form-row"><label>Username</label><input type="text" value="" placeholder="admin"></div>
+<div class="form-row"><label>Password</label><input type="password" value="" placeholder="••••••••"></div>
+<div class="btn-group"><button class="btn btn-primary" onclick="toast('Milestone salvato')">Salva</button></div>
+</div>
+</div>
+<div class="card">
+<div class="card-header">◆ Xovis — Parametri people counter</div>
+<div class="card-body">
+<div class="form-row"><label>Porta API</label><input type="number" value="4321"></div>
+<div class="form-row"><label>Comando rilevamento</label><input type="text" value="LineCrossing"></div>
+<div class="form-row"><label>Direzione attraversamento</label><select><option value="forward" selected>forward</option><option value="backward">backward</option><option value="both">both</option></select></div>
+<div class="btn-group"><button class="btn btn-primary" onclick="toast('Xovis salvato')">Salva</button></div>
+</div>
+</div>
+</div>
+<div class="page" id="p-log">
+<div class="page-header"><div class="page-title">Log eventi</div><div class="page-subtitle">Ultimi 100 eventi registrati</div></div>
+<div class="card">
+<div class="card-header" style="justify-content:space-between"><span>≡ Registro eventi</span><button class="btn btn-danger btn-sm" onclick="showConfirm('Eliminare tutti i log?',function(){document.getElementById('log-body').innerHTML='';toast('Log eliminati')})">Cancella log</button></div>
+<div class="card-body" style="padding:0">
+<table class="data-table log-entry">
+<thead><tr><th style="width:160px">Timestamp</th><th>Porta</th><th>Evento</th></tr></thead>
+<tbody id="log-body"></tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="page" id="p-manutenzione">
+<div class="page-header"><div class="page-title">Manutenzione</div><div class="page-subtitle">Gestione sistema</div></div>
+<div class="version-strip">Versione firmware: <span>TPP2W(G2)-4.02</span> &nbsp;|&nbsp; Build: <span>Mon, 16-Feb-26 10:01:34</span> &nbsp;|&nbsp; UUID: <span>9160f0c0-057a-4872-9af7-805c7d978eef</span></div>
+<div class="card" style="margin-bottom:16px">
+<div class="card-header">⚙ Tipo Applicazione</div>
+<div class="card-body">
+<div class="form-row"><label>Tipo Applicazione</label><select id="app-type-sel" onchange="STATE.appType=this.value" style="max-width:220px"><option value="AllFunction">All Function</option><option value="DoorAlarms">DoorAlarms</option><option value="Tvcc">Tvcc</option><option value="ControFlusso">ControFlusso</option></select></div>
+<div class="btn-group"><button class="btn btn-primary" onclick="toast('Tipo applicazione salvato')">Salva</button></div>
+</div>
+</div>
+<div class="maint-grid">
+<div class="maint-card">
+<div class="maint-card-title">🔄 Riavvio dispositivo</div>
+<button class="btn btn-danger" onclick="showConfirm('Riavviare il dispositivo?',function(){toast('Riavvio in corso...')})">Riavvia</button>
+</div>
+<div class="maint-card">
+<div class="maint-card-title">⚠ Reset di fabbrica</div>
+<button class="btn btn-danger" onclick="showConfirm('ATTENZIONE: Reset di fabbrica. Tutti i dati saranno persi!',function(){toast('Reset eseguito',true)})">Reset fabbrica</button>
+</div>
+<div class="maint-card">
+<div class="maint-card-title">🔒 Modifica password</div>
+<div style="display:flex;gap:8px;margin-top:4px"><input type="password" placeholder="Nuova password" class="ti" style="flex:1;max-width:180px"><button class="btn btn-primary" onclick="toast('Password aggiornata')">Salva</button></div>
+</div>
+</div>
+<div class="card" style="margin-top:20px">
+<div class="card-header">✦ Codice licenza</div>
+<div class="card-body">
+<div class="form-row"><label>Codice licenza</label><input type="text" value="" placeholder="XXXX-XXXX-XXXX-XXXX"></div>
+<div class="form-row"><label>UID dispositivo</label><input type="text" value="9160f0c0-057a-4872" readonly style="color:var(--text-sec)"></div>
+<div class="btn-group"><button class="btn btn-primary" onclick="toast('Licenza salvata')">Salva</button></div>
+</div>
+</div>
+<div class="card">
+<div class="card-header">✦ Informazioni</div>
+<div class="card-body">
+<div class="form-row"><label>Nome Dispositivo</label><input type="text" value="DSControlUnit" placeholder="DSControlUnit"></div>
+<div class="form-row"><label>Nome Proprietario</label><input type="text" value=""></div>
+<div class="form-row"><label>Nome Reseller</label><input type="text" value=""></div>
+<div class="form-row"><label>Email Reseller</label><input type="text" value="dev@aretes.net"></div>
+<div class="form-row"><label>Telefono Reseller</label><input type="text" value=""></div>
+<div class="btn-group"><button class="btn btn-primary" onclick="toast('Informazioni salvate')">Salva</button></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="status-bar" id="status-bar">
+<div class="status-section-label">IN</div>
+<div id="sb-inputs" style="display:flex;gap:4px;align-items:center"></div>
+<div class="status-divider"></div>
+<div class="status-section-label">OUT</div>
+<div id="sb-outputs" style="display:flex;gap:4px;align-items:center"></div>
+</div>
+</div>
+<script>
+const DOOR_STATE_OPTS=['Notifiche Disabilitate','Chiuso','Allarme Locale','Allarme Remoto','Acquisito','Silenziato','Manutenzione'];
+const STATE={inputs:[{name:'Porta1',milestoneName:'',linkOutput:0,doorState:1,inputType:'NC',alarmOnMuted:'NO',state:'closed',nc:true},{name:'Porta2',milestoneName:'',linkOutput:0,doorState:1,inputType:'NC',alarmOnMuted:'NO',state:'open',nc:true},{name:'Porta3',milestoneName:'',linkOutput:0,doorState:1,inputType:'NC',alarmOnMuted:'NO',state:'closed',nc:true},{name:'Porta4',milestoneName:'',linkOutput:0,doorState:1,inputType:'NC',alarmOnMuted:'NO',state:'closed',nc:true},{name:'Porta5',milestoneName:'',linkOutput:0,doorState:1,inputType:'NC',alarmOnMuted:'NO',state:'closed',nc:true},{name:'Porta6',milestoneName:'',linkOutput:0,doorState:1,inputType:'NC',alarmOnMuted:'NO',state:'open',nc:true},{name:'Porta7',milestoneName:'',linkOutput:0,doorState:1,inputType:'NC',alarmOnMuted:'NO',state:'closed',nc:true},{name:'Porta8',milestoneName:'',linkOutput:0,doorState:1,inputType:'NC',alarmOnMuted:'NO',state:'closed',nc:true},{name:'Porta9',milestoneName:'',linkOutput:0,doorState:1,inputType:'NC',alarmOnMuted:'NO',state:'closed',nc:true}],outputs:[{name:'Out1',on:false,type:'NO'},{name:'Out2',on:false,type:'NO'},{name:'Out3',on:false,type:'NO'},{name:'Out4',on:false,type:'NO'},{name:'Out5',on:false,type:'NO'},{name:'Out6',on:false,type:'NO'}],logEntries:[],appType:'AllFunction'};
+(function initLog(){var now=new Date();var events=[{sec:0,p:'Porta1',ev:'Chiusura',cls:'log-ev-close'},{sec:15,p:'Porta3',ev:'Apertura',cls:'log-ev-open'},{sec:45,p:'Porta6',ev:'Apertura',cls:'log-ev-open'},{sec:120,p:'Porta2',ev:'ALLARME',cls:'log-ev-alarm'},{sec:180,p:'Porta2',ev:'Chiusura',cls:'log-ev-close'},{sec:240,p:'Porta4',ev:'Apertura',cls:'log-ev-open'},{sec:300,p:'Porta4',ev:'Chiusura',cls:'log-ev-close'}];events.forEach(function(e){var t=new Date(now-e.sec*1000);STATE.logEntries.unshift({ts:fmtTs(t),port:e.p,ev:e.ev,cls:e.cls})});renderLog()})();
+function fmtTs(d){var pad=function(n){return String(n).padStart(2,'0')};return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())}
+function renderInputsTable(){var tbl=document.getElementById('inputs-table');if(!tbl)return;var tbody=tbl.querySelector('tbody');var outOpts=['Nessuno'].concat(STATE.outputs.map(function(o,i){return 'OUT'+(i+1)+' \u2013 '+o.name}));tbody.innerHTML=STATE.inputs.map(function(inp,i){var outSel=outOpts.map(function(o,j){return '<option value="'+j+'"'+(j===inp.linkOutput?' selected':'')+'>'+o+'</option>'}).join('');var dsSel=DOOR_STATE_OPTS.map(function(o,j){return '<option value="'+j+'"'+(j===inp.doorState?' selected':'')+'>'+o+'</option>'}).join('');return '<tr><td class="mono">'+(i+1)+'</td><td><input type="text" value="'+inp.name+'" onchange="STATE.inputs['+i+'].name=this.value;renderStatusBar()" class="ti ti-w"></td><td><input type="text" value="'+inp.milestoneName+'" onchange="STATE.inputs['+i+'].milestoneName=this.value" class="ti ti-m"></td><td><select onchange="STATE.inputs['+i+'].linkOutput=parseInt(this.value)" class="ti">'+outSel+'</select></td><td><select onchange="STATE.inputs['+i+'].doorState=parseInt(this.value)" class="ti ti-f">'+dsSel+'</select></td><td><select onchange="STATE.inputs['+i+'].inputType=this.value" class="ti"><option'+(inp.inputType==='NO'?' selected':'')+'>NO</option><option'+(inp.inputType==='NC'?' selected':'')+'>NC</option></select></td><td><select onchange="STATE.inputs['+i+'].alarmOnMuted=this.value" class="ti"><option'+(inp.alarmOnMuted==='YES'?' selected':'')+'>YES</option><option'+(inp.alarmOnMuted==='NO'?' selected':'')+'>NO</option></select></td><td><button class="btn btn-primary btn-sm" onclick="saveInput('+i+')">Salva</button></td></tr>'}).join('')}
+function saveInput(i){toast('Ingresso '+(i+1)+' salvato')}
+function saveAllInputs(){toast('Configurazione ingressi salvata')}
+function renderOutputsTable(){var tbody=document.getElementById('outputs-table').querySelector('tbody');if(!tbody)return;tbody.innerHTML=STATE.outputs.map(function(out,i){return '<tr><td class="mono">OUT'+(i+1)+'</td><td><input type="text" value="'+out.name+'" onchange="STATE.outputs['+i+'].name=this.value;renderStatusBar()" class="ti" style="width:160px"></td><td><select onchange="STATE.outputs['+i+'].type=this.value" class="ti"><option'+(out.type==='NO'?' selected':'')+'>NO</option><option'+(out.type==='NC'?' selected':'')+'>NC</option></select></td><td><span style="color:'+(out.on?'var(--green)':'var(--text-sec)')+'">'+(out.on?'ON':'OFF')+'</span></td><td><div style="display:flex;gap:8px"><button class="btn '+(out.on?'btn-danger':'btn-success')+' btn-sm" onclick="toggleOutput('+i+')">'+(out.on?'OFF':'ON')+'</button><button class="btn btn-secondary btn-sm" onclick="pulseOutput('+i+')">Impulso</button></div></td></tr>'}).join('')}
+function renderStatusBar(){var sbIn=document.getElementById('sb-inputs');sbIn.innerHTML=STATE.inputs.map(function(inp,i){return '<div class="port-in '+inp.state+'" id="sbi-'+i+'" title="'+inp.name+': '+inp.state.toUpperCase()+'"><div class="port-light">'+(inp.state==='closed'?'●':inp.state==='alarm'?'!':'○')+'</div><div class="port-name">'+inp.name+'</div><div class="port-label">'+(inp.state==='closed'?'CH':inp.state==='alarm'?'ALM':'AP')+'</div></div>'}).join('');var sbOut=document.getElementById('sb-outputs');sbOut.innerHTML=STATE.outputs.map(function(out,i){return '<div class="port-out '+(out.on?'on':'')+'" id="sbo-'+i+'" title="'+out.name+'"><div class="port-name">'+out.name+'</div><button class="port-toggle" onclick="toggleOutput('+i+')" title="'+(out.on?'Disattiva':'Attiva')+' '+out.name+'"></button><div class="port-label">'+(out.on?'ON':'OFF')+'</div></div>'}).join('')}
+function renderLog(){var tbody=document.getElementById('log-body');if(!tbody)return;tbody.innerHTML=STATE.logEntries.slice(0,100).map(function(e){return '<tr><td class="log-ts mono">'+e.ts+'</td><td class="mono">'+e.port+'</td><td class="'+e.cls+'">'+e.ev+'</td></tr>'}).join('')}
+function toggleOutput(i){STATE.outputs[i].on=!STATE.outputs[i].on;var label=STATE.outputs[i].on?'Attivato':'Disattivato';addLog(STATE.outputs[i].name,label+' (manuale)','log-ev-'+(STATE.outputs[i].on?'open':'close'));renderOutputsTable();renderStatusBar()}
+function pulseOutput(i){if(STATE.outputs[i].on)return;STATE.outputs[i].on=true;addLog(STATE.outputs[i].name,'Impulso attivato','log-ev-open');renderOutputsTable();renderStatusBar();toast('Impulso '+STATE.outputs[i].name);setTimeout(function(){STATE.outputs[i].on=false;addLog(STATE.outputs[i].name,'Impulso terminato','log-ev-close');renderOutputsTable();renderStatusBar()},2000)}
+function addLog(port,ev,cls){STATE.logEntries.unshift({ts:fmtTs(new Date()),port:port,ev:ev,cls:cls});if(STATE.logEntries.length>200)STATE.logEntries.pop();renderLog()}
+function showPage(id,el){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});var page=document.getElementById(id);if(page)page.classList.add('active');if(el)el.classList.add('active');if(id==='p-ingressi')renderInputsTable();if(id==='p-uscite')renderOutputsTable();if(id==='p-log')renderLog()}
+const DEMO_PW='1234';
+function doLogin(){var pw=document.getElementById('pw-input').value;if(pw===DEMO_PW||pw===''){document.getElementById('login-page').style.display='none';var app=document.getElementById('app');app.classList.add('visible');initApp()}else{var err=document.getElementById('login-error');err.style.display='block';document.getElementById('pw-input').value='';setTimeout(function(){err.style.display='none'},3000)}}
+function doLogout(){document.getElementById('app').classList.remove('visible');document.getElementById('login-page').style.display='flex';document.getElementById('pw-input').value=''}
+function initApp(){renderInputsTable();renderOutputsTable();renderStatusBar()}
+function toggleDHCP(sel){var manual=['row-ip','row-gw','row-nm'];manual.forEach(function(id){document.getElementById(id).style.opacity=sel.value==='1'?'0.4':'1';document.getElementById(id).querySelector('input').disabled=sel.value==='1'})}
+function showConfirm(m,cb){if(confirm(m))cb()}
+function toast(m){alert(m)}
+document.getElementById('pw-input').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin()});
+</script>
+</body>
+</html>

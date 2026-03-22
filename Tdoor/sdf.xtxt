@@ -1,0 +1,2 @@
+I=dsgroup1;D=General;T=GROUP;
+I=DN;T=STRING;C=EDIT;D=Device Name;

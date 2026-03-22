@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSControlUnit — Prototipo I/O</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-deep:#0b0e14;--bg-panel:#111520;--bg-card:#161b28;--bg-row:#1a2035;
+  --bg-hover:#1f2640;--border:#252d42;--border-light:#2e3a54;
+  --text-pri:#e2e8f5;--text-sec:#7a8fad;--text-dim:#3d4f6a;
+  --amber:#f0a030;--amber-dim:#7d521a;--amber-glow:rgba(240,160,48,0.15);
+  --green:#28c76f;--green-dim:#15623a;--green-glow:rgba(40,199,111,0.12);
+  --red:#ea4a5a;--red-dim:#6b1f26;--red-glow:rgba(234,74,90,0.12);
+  --font-ui:'Trebuchet MS','Segoe UI',sans-serif;
+  --font-mono:'Courier New','Lucida Console',monospace;
+}
+body{font-family:var(--font-ui);background:var(--bg-deep);color:var(--text-pri);min-height:100vh}
+
+/* TOPBAR */
+.topbar{background:var(--bg-panel);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.topbar-title{font-size:14px;font-weight:700;text-transform:uppercase;color:var(--text-pri);flex-shrink:0}
+.topbar-sep{width:1px;height:24px;background:var(--border-light);flex-shrink:0}
+.topbar-field{display:flex;align-items:center;gap:6px}
+.topbar-field label{font-size:11px;color:var(--text-sec);text-transform:uppercase;white-space:nowrap}
+.topbar-field input{background:var(--bg-deep);border:1px solid var(--border-light);color:var(--amber);padding:5px 10px;font-family:var(--font-mono);font-size:13px;width:160px;border-radius:2px}
+.topbar-field input:focus{border-color:var(--amber);outline:none;box-shadow:0 0 0 2px var(--amber-glow)}
+.topbar-field input.pw-field{width:100px}
+.btn{border:none;padding:7px 16px;font-family:var(--font-ui);font-size:12px;font-weight:700;text-transform:uppercase;cursor:pointer;border-radius:2px}
+.btn-amber{background:var(--amber);color:var(--bg-deep)}
+.btn-amber:hover{background:#f5b040}
+.btn-green{background:var(--green);color:var(--bg-deep)}
+.btn-green:hover{background:#32d97a}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:hover{background:#f05a6a}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
+.conn-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.conn-dot.online{background:var(--green);box-shadow:0 0 6px var(--green)}
+.conn-dot.offline{background:var(--red);box-shadow:0 0 6px var(--red)}
+.conn-label{font-size:11px;color:var(--text-sec);text-transform:uppercase}
+
+/* MAIN GRID */
+.main{display:flex;gap:16px;padding:20px;flex-wrap:wrap}
+.col{flex:1;min-width:340px}
+
+/* CARDS */
+.card{background:var(--bg-card);border:1px solid var(--border);margin-bottom:14px;overflow:hidden}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-row);border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;color:var(--text-sec);font-weight:700}
+.card-body{padding:0}
+
+/* TABLE */
+.io-table{width:100%;border-collapse:collapse;font-size:13px}
+.io-table th{text-align:left;font-size:10px;text-transform:uppercase;color:var(--text-dim);padding:8px 10px;border-bottom:1px solid var(--border);font-weight:700}
+.io-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text-pri);vertical-align:middle}
+.io-table tr:last-child td{border-bottom:none}
+
+/* INDICATORI STATO */
+.state-dot{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:6px}
+.state-dot.closed{background:var(--green);box-shadow:0 0 6px var(--green-glow)}
+.state-dot.open{background:var(--red);box-shadow:0 0 6px var(--red-glow)}
+.state-dot.off{background:var(--text-dim)}
+.state-dot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+.state-label{font-family:var(--font-mono);font-size:11px;font-weight:700}
+.state-label.closed{color:var(--green)}
+.state-label.open{color:var(--red)}
+.state-label.on{color:var(--green)}
+.state-label.off{color:var(--text-dim)}
+
+/* SELECT / CHECKBOX */
+.io-sel{background:var(--bg-deep);border:1px solid var(--border-light);color:var(--text-pri);padding:4px 6px;font-size:12px;font-family:var(--font-mono);border-radius:2px}
+.io-sel:focus{border-color:var(--amber);outline:none}
+.lock-cb{width:15px;height:15px;accent-color:var(--amber);cursor:pointer;vertical-align:middle}
+.lock-icon{font-size:13px;color:var(--amber);margin-left:2px;vertical-align:middle}
+.lock-icon.inactive{color:var(--text-dim)}
+
+/* FOOTER STATUS */
+.statusbar{background:var(--bg-panel);border-top:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:fixed;bottom:0;left:0;right:0}
+.statusbar-item{font-size:11px;color:var(--text-sec);font-family:var(--font-mono)}
+.statusbar-item span{color:var(--amber)}
+
+/* TOAST */
+.toast-container{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:10px 18px;font-size:13px;font-family:var(--font-ui);border-radius:3px;animation:toastIn 0.3s ease;max-width:360px;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+.toast.ok{background:var(--green-dim);border:1px solid var(--green);color:var(--green)}
+.toast.err{background:var(--red-dim);border:1px solid var(--red);color:var(--red)}
+@keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+
+/* DASHBOARD SINOTTICA */
+.synoptic{display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px}
+.syn-item{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:48px;padding:6px 4px;border-radius:3px;border:1px solid var(--border)}
+.syn-item .syn-dot{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
+.syn-item .syn-name{font-size:8px;font-family:var(--font-mono);color:var(--text-sec);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48px}
+.syn-item .syn-label{font-size:8px;font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-title">DSControlUnit — Prototipo I/O</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-field">
+    <label>IP</label>
+    <input type="text" id="tb-ip" value="192.168.1.40" placeholder="192.168.1.40">
+  </div>
+  <div class="topbar-field">
+    <label>Password</label>
+    <input type="password" id="tb-pw" value="" placeholder="password" class="pw-field">
+  </div>
+  <button class="btn btn-amber" id="btn-conn" onclick="toggleConnection()">Connetti</button>
+  <div class="topbar-sep"></div>
+  <div class="conn-dot offline" id="conn-dot"></div>
+  <div class="conn-label" id="conn-label">Disconnesso</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- COLONNA INGRESSI -->
+  <div class="col">
+    <div class="card">
+      <div class="card-header">
+        <span>Ingressi (9)</span>
+        <button class="btn btn-amber btn-sm" onclick="saveInputConfig()">Salva Config</button>
+      </div>
+      <div class="card-body">
+        <table class="io-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Stato</th>
+              <th>Nome</th>
+              <th>Uscita associata</th>
+              <th title="Se attivo: relay bloccato finch&#233; ingresso attivo">Lock</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-inputs"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLONNA USCITE -->
+  <div class="col">
+    <div class="card">
+      <div class="card-header"><span>Uscite (6)</span></div>
+      <div class="card-body">
+        <table class="io-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Stato</th>
+              <th>Nome</th>
+              <th>Controllo</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-outputs"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD SINOTTICA -->
+<div class="card" style="margin:0 20px 80px 20px">
+  <div class="card-header"><span>Dashboard sinottica</span><span id="dash-time" style="color:var(--amber);font-family:var(--font-mono)">--:--:--</span></div>
+  <div class="card-body" style="display:flex;gap:20px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:9px;text-transform:uppercase;color:var(--text-dim);padding:10px 16px 4px;font-weight:700">Ingressi</div>
+      <div class="synoptic" id="syn-inputs"></div>
+    </div>
+    <div>
+      <div style="font-size:9px;text-transform:uppercase;color:var(--text-dim);padding:10px 16px 4px;font-weight:700">Uscite</div>
+      <div class="synoptic" id="syn-outputs"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div class="statusbar-item">Stato: <span id="sb-status">Disconnesso</span></div>
+  <div class="statusbar-item">Ultimo poll: <span id="sb-poll">--:--:--</span></div>
+  <div class="statusbar-item">Errori consecutivi: <span id="sb-errors">0</span></div>
+  <div class="statusbar-item">Poll #: <span id="sb-count">0</span></div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+/* ========================================================================
+   DSControlUnit — Prototipo I/O con API reale
+   Vanilla JS ES5 — nessun framework, nessun build
+   ======================================================================== */
+
+/* --- STATO APPLICAZIONE --- */
+var APP = {
+  ip: '192.168.1.40',
+  pw: '',
+  connected: false,
+  pollTimer: null,
+  pollInterval: 3000,
+  pollCount: 0,
+  errCount: 0,
+  inputs: [],   // {name, state, linkOutput, lockOnActive}
+  outputs: []   // {name, on}
+};
+
+/* Inizializza strutture dati */
+(function initState() {
+  var i;
+  for (i = 0; i < 9; i++) {
+    APP.inputs.push({
+      name: 'Porta' + (i + 1),
+      state: 0,          // 0=chiuso, 1=aperto, 2=allarme
+      linkOutput: 0,     // 0=nessuna, 1-6
+      lockOnActive: false
+    });
+  }
+  for (i = 0; i < 6; i++) {
+    APP.outputs.push({
+      name: 'Out' + (i + 1),
+      on: false
+    });
+  }
+})();
+
+/* --- TOAST --- */
+function toast(msg, isError) {
+  var container = document.getElementById('toast-container');
+  var el = document.createElement('div');
+  el.className = 'toast ' + (isError ? 'err' : 'ok');
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(function() {
+    if (el.parentNode) el.parentNode.removeChild(el);
+  }, 3500);
+}
+
+/* --- UTILITY HTTP --- */
+function apiUrl(endpoint, params) {
+  var url = 'http://' + APP.ip + '/api.html?e=' + endpoint;
+  if (params) url += '&' + params;
+  if (APP.pw) url += '&password=' + encodeURIComponent(APP.pw);
+  return url;
+}
+
+function apiFetch(endpoint, params, onOk, onErr) {
+  var xhr = new XMLHttpRequest();
+  var url = apiUrl(endpoint, params);
+  xhr.open('GET', url, true);
+  xhr.timeout = 5000;
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      if (onOk) onOk(xhr.responseText);
+    } else {
+      if (onErr) onErr('HTTP ' + xhr.status);
+    }
+  };
+  xhr.onerror = function() { if (onErr) onErr('Errore di rete'); };
+  xhr.ontimeout = function() { if (onErr) onErr('Timeout'); };
+  xhr.send();
+}
+
+/* --- CONNESSIONE --- */
+function toggleConnection() {
+  if (APP.connected) {
+    disconnect();
+  } else {
+    connect();
+  }
+}
+
+function connect() {
+  APP.ip = document.getElementById('tb-ip').value.trim();
+  APP.pw = document.getElementById('tb-pw').value;
+
+  if (!APP.ip) {
+    toast('Inserire indirizzo IP', true);
+    return;
+  }
+
+  toast('Connessione a ' + APP.ip + '...');
+  setConnState('connecting');
+
+  // Test connessione con lettura variabili
+  apiFetch('w', 'action=get',
+    function(resp) {
+      try {
+        var data = JSON.parse(resp);
+        toast('Connesso a ' + (data.DN || APP.ip));
+        APP.connected = true;
+        setConnState('online');
+        loadInputConfig();
+        startPolling();
+      } catch (e) {
+        toast('Risposta non valida dal dispositivo', true);
+        setConnState('offline');
+      }
+    },
+    function(err) {
+      toast('Connessione fallita: ' + err, true);
+      setConnState('offline');
+    }
+  );
+}
+
+function disconnect() {
+  APP.connected = false;
+  stopPolling();
+  setConnState('offline');
+  APP.errCount = 0;
+  updateStatusBar();
+  toast('Disconnesso');
+}
+
+function setConnState(state) {
+  var dot = document.getElementById('conn-dot');
+  var label = document.getElementById('conn-label');
+  var btn = document.getElementById('btn-conn');
+
+  if (state === 'online') {
+    dot.className = 'conn-dot online';
+    label.textContent = 'Connesso';
+    btn.textContent = 'Disconnetti';
+    btn.className = 'btn btn-red';
+  } else if (state === 'connecting') {
+    dot.className = 'conn-dot offline';
+    label.textContent = 'Connessione...';
+    btn.disabled = true;
+  } else {
+    dot.className = 'conn-dot offline';
+    label.textContent = 'Disconnesso';
+    btn.textContent = 'Connetti';
+    btn.className = 'btn btn-amber';
+  }
+  btn.disabled = (state === 'connecting');
+}
+
+/* --- POLLING I/O --- */
+function startPolling() {
+  stopPolling();
+  pollIO(); // primo poll immediato
+  APP.pollTimer = setInterval(pollIO, APP.pollInterval);
+}
+
+function stopPolling() {
+  if (APP.pollTimer) {
+    clearInterval(APP.pollTimer);
+    APP.pollTimer = null;
+  }
+}
+
+function pollIO() {
+  if (!APP.connected) return;
+
+  apiFetch('io', 'action=get',
+    function(resp) {
+      try {
+        var data = JSON.parse(resp);
+        var i;
+
+        // Aggiorna stato ingressi
+        if (data['in'] && data['in'].length) {
+          for (i = 0; i < Math.min(data['in'].length, 9); i++) {
+            APP.inputs[i].state = data['in'][i];
+          }
+        }
+
+        // Aggiorna stato uscite
+        if (data.out && data.out.length) {
+          for (i = 0; i < Math.min(data.out.length, 6); i++) {
+            APP.outputs[i].on = (data.out[i] === 1);
+          }
+        }
+
+        APP.errCount = 0;
+        APP.pollCount++;
+        updateStatusBar();
+        renderAll();
+      } catch (e) {
+        APP.errCount++;
+        updateStatusBar();
+      }
+    },
+    function(err) {
+      APP.errCount++;
+      updateStatusBar();
+      if (APP.errCount >= 5) {
+        toast('Persa connessione con il dispositivo', true);
+        disconnect();
+      }
+    }
+  );
+}
+
+/* --- LOAD/SAVE CONFIG INGRESSI --- */
+function loadInputConfig() {
+  var loaded = 0;
+  var i;
+  for (i = 0; i < 9; i++) {
+    (function(idx) {
+      var key = 'IN0' + (idx + 1);
+      apiFetch('v', 'action=get&variable=' + key,
+        function(resp) {
+          parseInputCSV(idx, resp.replace(/"/g, '').trim());
+          loaded++;
+          if (loaded >= 9) {
+            renderAll();
+            toast('Configurazione ingressi caricata');
+          }
+        },
+        function() {
+          loaded++;
+          if (loaded >= 9) renderAll();
+        }
+      );
+    })(i);
+  }
+}
+
+function parseInputCSV(idx, csv) {
+  if (!csv) return;
+  var parts = csv.split(',');
+  // formato: nome,tipo,doorState,alarmOnMuted,linkOutput,milestoneName,lockOnActive
+  if (parts.length >= 1) APP.inputs[idx].name = parts[0] || APP.inputs[idx].name;
+  if (parts.length >= 5) APP.inputs[idx].linkOutput = parseInt(parts[4], 10) || 0;
+  if (parts.length >= 7) APP.inputs[idx].lockOnActive = (parts[6] === 'Y');
+}
+
+function buildInputCSV(idx) {
+  var inp = APP.inputs[idx];
+  // nome,tipo,doorState,alarmOnMuted,linkOutput,milestoneName,lockOnActive
+  return inp.name + ',NC,1,NO,' + inp.linkOutput + ',,' + (inp.lockOnActive ? 'Y' : 'N');
+}
+
+function saveInputConfig() {
+  if (!APP.connected) {
+    toast('Non connesso', true);
+    return;
+  }
+  var saved = 0;
+  var i;
+  for (i = 0; i < 9; i++) {
+    (function(idx) {
+      var key = 'IN0' + (idx + 1);
+      var val = buildInputCSV(idx);
+      apiFetch('v', 'action=set&variable=' + key + '&value=' + encodeURIComponent(val),
+        function() {
+          saved++;
+          if (saved >= 9) toast('Configurazione salvata (' + saved + '/9)');
+        },
+        function(err) {
+          saved++;
+          toast('Errore salvataggio ' + key + ': ' + err, true);
+        }
+      );
+    })(i);
+  }
+}
+
+/* --- CONTROLLO USCITE --- */
+function setOutput(idx, val) {
+  if (!APP.connected) {
+    toast('Non connesso', true);
+    return;
+  }
+
+  // Controllo lockOnActive: se si tenta di spegnere (val=0)
+  if (val === 0) {
+    var i;
+    for (i = 0; i < 9; i++) {
+      if (APP.inputs[i].linkOutput === (idx + 1) &&
+          APP.inputs[i].lockOnActive &&
+          APP.inputs[i].state > 0) {
+        toast('Uscita OUT' + (idx + 1) + ' bloccata: ' + APP.inputs[i].name + ' ancora attivo', true);
+        return;
+      }
+    }
+  }
+
+  apiFetch('io', 'action=set_out&idx=' + idx + '&val=' + val,
+    function() {
+      APP.outputs[idx].on = (val === 1);
+      renderAll();
+      toast('OUT' + (idx + 1) + ' → ' + (val ? 'ON' : 'OFF'));
+    },
+    function(err) {
+      toast('Errore controllo uscita: ' + err, true);
+    }
+  );
+}
+
+function pulseOutput(idx) {
+  if (!APP.connected) {
+    toast('Non connesso', true);
+    return;
+  }
+
+  apiFetch('io', 'action=pulse_out&idx=' + idx,
+    function() {
+      APP.outputs[idx].on = true;
+      renderAll();
+      toast('Impulso OUT' + (idx + 1) + ' attivato');
+      // Il firmware lo spegnerà dopo 2s, il prossimo poll aggiornerà
+    },
+    function(err) {
+      toast('Errore impulso: ' + err, true);
+    }
+  );
+}
+
+/* --- RENDER --- */
+function renderAll() {
+  renderInputs();
+  renderOutputs();
+  renderSynoptic();
+}
+
+function renderInputs() {
+  var tbody = document.getElementById('tbl-inputs');
+  var html = '';
+  var i;
+  for (i = 0; i < 9; i++) {
+    var inp = APP.inputs[i];
+    var stClass = inp.state === 0 ? 'closed' : 'open';
+    var stText = inp.state === 0 ? 'CH' : (inp.state === 2 ? 'ALM' : 'AP');
+    var locked = inp.lockOnActive && inp.state > 0;
+
+    // Select uscita associata
+    var selHtml = '<select class="io-sel" onchange="setLinkOutput(' + i + ',this.value)">';
+    selHtml += '<option value="0"' + (inp.linkOutput === 0 ? ' selected' : '') + '>---</option>';
+    for (var j = 0; j < 6; j++) {
+      selHtml += '<option value="' + (j + 1) + '"' + (inp.linkOutput === (j + 1) ? ' selected' : '') + '>OUT' + (j + 1) + '</option>';
+    }
+    selHtml += '</select>';
+
+    html += '<tr>';
+    html += '<td style="font-family:var(--font-mono);color:var(--text-dim)">' + (i + 1) + '</td>';
+    html += '<td><span class="state-dot ' + stClass + '"></span><span class="state-label ' + stClass + '">' + stText + '</span></td>';
+    html += '<td style="font-family:var(--font-mono)">' + inp.name + '</td>';
+    html += '<td>' + selHtml + '</td>';
+    html += '<td><input type="checkbox" class="lock-cb" title="lockOnActive: relay bloccato se ingresso attivo"' + (inp.lockOnActive ? ' checked' : '') + ' onchange="setLockOnActive(' + i + ',this.checked)"><span class="lock-icon ' + (locked ? '' : 'inactive') + '" title="' + (locked ? 'BLOCCATO: ingresso attivo' : 'Sbloccato') + '">&#x1F512;</span></td>';
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function renderOutputs() {
+  var tbody = document.getElementById('tbl-outputs');
+  var html = '';
+  var i;
+  for (i = 0; i < 6; i++) {
+    var out = APP.outputs[i];
+    var stClass = out.on ? 'on' : 'off';
+    var stText = out.on ? 'ON' : 'OFF';
+
+    // Verifica se qualche ingresso blocca questo output
+    var isLocked = false;
+    for (var j = 0; j < 9; j++) {
+      if (APP.inputs[j].linkOutput === (i + 1) &&
+          APP.inputs[j].lockOnActive &&
+          APP.inputs[j].state > 0) {
+        isLocked = true;
+        break;
+      }
+    }
+
+    var toggleVal = out.on ? 0 : 1;
+    var toggleLabel = out.on ? 'OFF' : 'ON';
+    var toggleClass = out.on ? 'btn-red' : 'btn-green';
+    var offDisabled = (out.on && isLocked) ? ' disabled title="Bloccato: ingresso ancora attivo"' : '';
+
+    html += '<tr>';
+    html += '<td style="font-family:var(--font-mono);color:var(--text-dim)">OUT' + (i + 1) + '</td>';
+    html += '<td><span class="state-dot ' + stClass + '"></span><span class="state-label ' + stClass + '">' + stText + '</span></td>';
+    html += '<td style="font-family:var(--font-mono)">' + out.name + '</td>';
+    html += '<td style="display:flex;gap:6px">';
+
+    if (out.on) {
+      html += '<button class="btn btn-red btn-sm" onclick="setOutput(' + i + ',0)"' + offDisabled + '>OFF</button>';
+    } else {
+      html += '<button class="btn btn-green btn-sm" onclick="setOutput(' + i + ',1)">ON</button>';
+    }
+    html += '<button class="btn btn-amber btn-sm" onclick="pulseOutput(' + i + ')">Impulso</button>';
+
+    if (isLocked) {
+      html += '<span class="lock-icon" title="Bloccato: ingresso attivo">&#x1F512;</span>';
+    }
+
+    html += '</td>';
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function renderSynoptic() {
+  var inHtml = '';
+  var outHtml = '';
+  var i;
+
+  for (i = 0; i < 9; i++) {
+    var inp = APP.inputs[i];
+    var dotColor = inp.state === 0 ? 'var(--green)' : 'var(--red)';
+    var dotChar = inp.state === 0 ? '●' : (inp.state === 2 ? '!' : '○');
+    var labelText = inp.state === 0 ? 'CH' : (inp.state === 2 ? 'ALM' : 'AP');
+    var labelColor = inp.state === 0 ? 'var(--green)' : 'var(--red)';
+
+    inHtml += '<div class="syn-item">';
+    inHtml += '<div class="syn-dot" style="background:' + (inp.state === 0 ? 'var(--green-dim)' : 'var(--red-dim)') + ';color:' + dotColor + '">' + dotChar + '</div>';
+    inHtml += '<div class="syn-name">' + inp.name + '</div>';
+    inHtml += '<div class="syn-label" style="color:' + labelColor + '">' + labelText + '</div>';
+    inHtml += '</div>';
+  }
+
+  for (i = 0; i < 6; i++) {
+    var out = APP.outputs[i];
+    var oColor = out.on ? 'var(--green)' : 'var(--text-dim)';
+    var oBg = out.on ? 'var(--green-dim)' : 'var(--bg-deep)';
+
+    outHtml += '<div class="syn-item">';
+    outHtml += '<div class="syn-dot" style="background:' + oBg + ';color:' + oColor + '">' + (out.on ? '●' : '○') + '</div>';
+    outHtml += '<div class="syn-name">' + out.name + '</div>';
+    outHtml += '<div class="syn-label" style="color:' + oColor + '">' + (out.on ? 'ON' : 'OFF') + '</div>';
+    outHtml += '</div>';
+  }
+
+  document.getElementById('syn-inputs').innerHTML = inHtml;
+  document.getElementById('syn-outputs').innerHTML = outHtml;
+
+  // Aggiorna orologio dashboard
+  var now = new Date();
+  document.getElementById('dash-time').textContent = padZ(now.getHours()) + ':' + padZ(now.getMinutes()) + ':' + padZ(now.getSeconds());
+}
+
+/* --- HANDLERS UI --- */
+function setLinkOutput(idx, val) {
+  APP.inputs[idx].linkOutput = parseInt(val, 10) || 0;
+}
+
+function setLockOnActive(idx, checked) {
+  APP.inputs[idx].lockOnActive = checked;
+  renderAll();
+}
+
+/* --- STATUS BAR --- */
+function updateStatusBar() {
+  document.getElementById('sb-status').textContent = APP.connected ? 'Connesso' : 'Disconnesso';
+  document.getElementById('sb-errors').textContent = String(APP.errCount);
+  document.getElementById('sb-count').textContent = String(APP.pollCount);
+
+  var now = new Date();
+  document.getElementById('sb-poll').textContent = padZ(now.getHours()) + ':' + padZ(now.getMinutes()) + ':' + padZ(now.getSeconds());
+}
+
+function padZ(n) {
+  return n < 10 ? '0' + n : String(n);
+}
+
+/* --- INIT --- */
+renderAll();
+</script>
+</body>
+</html>
