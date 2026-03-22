@@ -93,6 +93,10 @@ body{font-family:var(--font-ui);background:var(--bg-deep);color:var(--text-pri);
 .syn-item .syn-dot{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
 .syn-item .syn-name{font-size:8px;font-family:var(--font-mono);color:var(--text-sec);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48px}
 .syn-item .syn-label{font-size:8px;font-weight:700}
+.dash-card{margin:0 20px 80px 20px}
+.dash-time{color:var(--amber);font-family:var(--font-mono)}
+.dash-body{display:flex;gap:20px;flex-wrap:wrap}
+.dash-section-label{font-size:9px;text-transform:uppercase;color:var(--text-dim);padding:10px 16px 4px;font-weight:700}
 </style>
 </head>
 <body>
@@ -109,7 +113,7 @@ body{font-family:var(--font-ui);background:var(--bg-deep);color:var(--text-pri);
     <label>Password</label>
     <input type="password" id="tb-pw" value="" placeholder="password" class="pw-field">
   </div>
-  <button class="btn btn-amber" id="btn-conn" onclick="toggleConnection()">Connetti</button>
+  <button type="button" class="btn btn-amber" id="btn-conn" onclick="toggleConnection()">Connetti</button>
   <div class="topbar-sep"></div>
   <div class="conn-dot offline" id="conn-dot"></div>
   <div class="conn-label" id="conn-label">Disconnesso</div>
@@ -123,7 +127,7 @@ body{font-family:var(--font-ui);background:var(--bg-deep);color:var(--text-pri);
     <div class="card">
       <div class="card-header">
         <span>Ingressi (9)</span>
-        <button class="btn btn-amber btn-sm" onclick="saveInputConfig()">Salva Config</button>
+        <button type="button" class="btn btn-amber btn-sm" onclick="saveInputConfig()">Salva Config</button>
       </div>
       <div class="card-body">
         <table class="io-table">
@@ -164,15 +168,15 @@ body{font-family:var(--font-ui);background:var(--bg-deep);color:var(--text-pri);
 </div>
 
 <!-- DASHBOARD SINOTTICA -->
-<div class="card" style="margin:0 20px 80px 20px">
-  <div class="card-header"><span>Dashboard sinottica</span><span id="dash-time" style="color:var(--amber);font-family:var(--font-mono)">--:--:--</span></div>
-  <div class="card-body" style="display:flex;gap:20px;flex-wrap:wrap">
+<div class="card dash-card">
+  <div class="card-header"><span>Dashboard sinottica</span><span id="dash-time" class="dash-time">--:--:--</span></div>
+  <div class="card-body dash-body">
     <div>
-      <div style="font-size:9px;text-transform:uppercase;color:var(--text-dim);padding:10px 16px 4px;font-weight:700">Ingressi</div>
+      <div class="dash-section-label">Ingressi</div>
       <div class="synoptic" id="syn-inputs"></div>
     </div>
     <div>
-      <div style="font-size:9px;text-transform:uppercase;color:var(--text-dim);padding:10px 16px 4px;font-weight:700">Uscite</div>
+      <div class="dash-section-label">Uscite</div>
       <div class="synoptic" id="syn-outputs"></div>
     </div>
   </div>
