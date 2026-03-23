@@ -1,0 +1,531 @@
+'DEFINES-------------------------------------------------------------
+
+type lcd_img_widget
+    filename as string(50)
+    x_pos as short
+    y_pos as byte
+    x_offset as word
+    y_offset as word
+    width as word
+    height as word
+    visible as boolean
+    screen as byte
+end type
+
+type lcd_text_widget
+    text as string(64)
+    x_pos as short
+    y_pos as byte
+    width as word
+    height as word
+    forecolor as word
+    backcolor as word
+    font as string(16)
+    text_alignment as pl_lcd_text_alignment
+    visible as boolean
+    screen as byte
+end type
+
+
+#define LCD_IMG_WIDGETS_COUNT 1
+#define LCD_TEXT_WIDGETS_COUNT 1
+
+
+
+#define LCD_IMG_WIDGETS_COUNT 1
+#define LCD_TEXT_WIDGETS_COUNT 1
+
+#define MENU_CURSOR_STYLE 1
+#define LIST_BOX_CURSOR_STYLE 1
+#define INPUT_BOX_CURSOR_STYLE 1
+#define LCD_LOCK lcd.lock
+#define LCD_UNLOCK lcd.unlock
+#define VER_SPACING 9
+#define HOR_SPACING 2 
+
+#define BMP_LEFT_XOFFSET 320
+#define BMP_NUM_XOFFSET 240
+#define BMP_ALPH1_XOFFSET 280
+#define BMP_ALPH2_XOFFSET 360
+#define BMP_STORE_XOFFSET 40
+
+#define STD_INPUT_WAIT_TIME 20 'in 0.5 seconds
+
+'------ ui_menu ------
+#define VER_SPACING 9
+#define HOR_SPACING 2
+#define BMP_CANCEL_XOFFSET 0
+#define BMP_ENTER_XOFFSET 40
+#define BMP_UP_XOFFSET 80
+#define BMP_DOWN_XOFFSET 120
+#define MENU_MAX_LVL 5
+#define MENU_MAX_ITEM_PER_LVL 16
+#define MENU_DISPLAY_ITEM_PER_LVL 6
+#define LCD_MENU_TOUT 0
+#define DISPLAY_STR_LEN 150
+#define MENU_STRING_LEN 255
+#define SCROLL_BAR_WIDTH 15
+#define SCROLL_ARROW_HEIGHT 12
+#define SCROLL_MIN_HEIGHT 2
+#define SCROLL_CURSOR_WIDTH 9
+#define CURSOR_BAR_LEN_OFFSET 2
+#define SCROLL_BORDER 2
+#define LCD_BACKCOLOR 0
+#define LCD_FORECOLOR 65535
+#define LCD_DISABLE_BACKCOLOR 14823
+#define LCD_DISABLE_FORECOLOR 33840
+#define LCD_CURSORCOLOR 63080
+#define LCD_DEAD_SCREEN_COLOR 63488
+#define MENU_X 0
+#define MENU_Y 7
+#define MENU_W 320
+#define MENU_H 187
+#define MENU_MAX_LINE 6
+#define UM_HOR_SPACING HOR_SPACING
+#define UM_VER_SPACING VER_SPACING
+#define MENU_SCRIPT_FILE "menu.xtxt"
+#define USE_STG_TIMESTAMP 0
+
+'------ ui_msg_box ------
+#define MSG_BOX_X 0
+#define MSG_BOX_Y 0
+#define MSG_BOX_W lcd.width
+#define MSG_BOX_H 185
+#define MSB_HOR_SPACING 2
+#define MSB_VER_SPACING 3
+
+'------ ui_input_box -----
+#define IB_MAX_LEN 64
+#define LCD_FIX_FONT "11X19(H).bin"
+#define INPUT_BOX_X MENU_X
+#define INPUT_BOX_Y MENU_H+MENU_Y-9
+#define INPUT_BOX_W MENU_W-MENU_X
+#define INPUT_BOX_H 25
+#define INPUT_BOX_CURSOR_OFFSET 2
+#define INPUT_BOX_CURSOR_WIDTH 2
+#define INPUT_BOX_INIT_POS 0
+#define LCD_INPUTBOX_FORECOLOR 65535
+#define LCD_INPUTBOX_BACKCOLOR 63080
+#define UIB_HOR_SPACING HOR_SPACING
+#define RESTART yes
+
+'------ ui_list_box ------
+#define SMALL_ICON_FILE "small_icons.bmp"
+#define LIST_BOX_X 25
+#define LIST_BOX_Y 15
+#define LIST_BOX_W 270
+#define LIST_BOX_H 160
+#define SCROLL_ARROW_X_POS_OFFSET 0
+#define SCROLL_ARROW_Y_POS_OFFSET 2
+#define ULB_VER_SPACING VER_SPACING
+#define ULB_HOR_SPACING HOR_SPACING
+
+#define INTERFACE_SWITCHING 1
+#define DEFAULT_INTERFACE PL_SOCK_INTERFACE_NULL
+
+#define WLN_AVAILABLE 0
+
+#define INT_EDGE_LOW 1
+#define INT_EDGE_HIGH 2
+#define INT_EDGE_BOTH 3
+#define FILENUM_MAX_FILES 10
+#define LCD_STD_FONT "11X19(HP).bin"
+#define LCD_SMALL_FONT "Tibbo-5x7(V).bin"
+#define SOCK_MAX_SIGNATURE_LEN 10
+#define SSI_MAX_SIGNATURE_LEN 32
+#define SI2C_MAX_SIGNATURE_LEN 32
+#define SSPI_MAX_SIGNATURE_LEN 32
+#define SUPPORTS_TLS 1
+#define DHCP_DEBUG_PRINT 1
+#define DHCP_POST_FAIL_DELAY 30
+#define DHCP_WAIT_TIME 8
+#define HTTP_DEBUG_PRINT 0
+#define HTTP_TLS_BUFF_PAGES 150
+#define HTTP_SERVER_COUNT 3
+#define CTS_MAP 0
+#define RTS_MAP 0
+#define HTTP_TX_BUFF 10
+#define HTTP_RX_BUFF 10
+#define FIRMWARE_UPGRADE_FILENAME "firmware.bin"
+#define VARIABLES_DEBUG_PRINT 1
+#define MAX_NUM_SDF_LINES 3
+
+
+
+
+const FIRMWARE_VERSION="{Tdoor 1.1.0}"
+
+const MAX_NUM_INTERFACES=4
+
+const APP_VERSION="1.1.0"
+const APP_ID="6995b54f92cde91151fae384"
+
+'Schema version target per questo firmware
+const SCHEMA_VERSION="1"
+
+'Numero ingressi e uscite fisici
+const NUM_INPUTS=9
+const NUM_OUTPUTS=6
+
+const T54_S9_L1_num = PL_IO_NUM_32
+
+const T54_S9_L2_num = PL_IO_NUM_33
+
+const T54_S9_L3_num = PL_IO_NUM_4
+
+const T54_S9_L4_num = PL_IO_NUM_20_INT4
+
+const T03_1_S1_L1_num = PL_IO_NUM_9_TX0
+
+const T03_1_S1_L2_num = PL_IO_NUM_8_RX0
+
+const T03_1_S3_L1_num = PL_IO_NUM_11_TX1
+
+const T03_1_S3_L2_num = PL_IO_NUM_10_RX1
+
+const T54_S7_L1_num = PL_IO_NUM_15_TX3
+
+const T54_S7_L2_num = PL_IO_NUM_14_RX3
+
+const T54_S7_L3_num = PL_IO_NUM_3
+
+const T54_S7_L4_num = PL_IO_NUM_19_INT3
+
+const T03_1_S5_L1_num = PL_IO_NUM_13_TX2
+
+const T03_1_S5_L2_num = PL_IO_NUM_12_RX2
+
+
+
+'INCLUDES------------------------------------------------------------
+includepp "settings.xtxt"
+includepp "filenum.xtxt"
+includepp "tables.xtxt"
+includepp "sdf.xtxt"
+
+
+include "libraries/settings/settings.tbh"
+include "libraries/filenum/filenum.tbh"
+include "libraries/tables/tables.tbh"
+include "libraries/tables/tables_web.tbh"
+include "libraries/sock/sock.tbh"
+include "libraries/time/time.tbh"
+include "libraries/time/datetime.tbh"
+include "libraries/utils/utils.tbh"
+include "libraries/dhcp/dhcp.tbh"
+include "libraries/dns/dns.tbh"
+include "libraries/http/http.tbh"
+include "libraries/http_server/http_server.tbh"
+include "libraries/sntp/sntp.tbh"
+include "libraries/stgcmd/stgcmd.tbh"
+include "libraries/upgrade/upgrade.tbh"
+include "libraries/utils/flags.tbh"
+include "libraries/utils/login_control.tbh"
+include "libraries/dsman/net_cmd.tbh"
+
+
+'DECLARATIONS--------------------------------------------------------
+declare function tbl_record_find_sorted(record_type as en_tbl_record_states, byref search_data as string(50), table_name as string, byref field_name as string(20), byref rec_num as word, wraparound as boolean, find_method as pl_fd_find_modes) as en_tbl_status_codes
+declare sub tbl_value_to_binstr(byref value as string, byref bin_value as string, field_type as en_tbl_field_types)
+declare function tbl_all_delete_row(byref table as string, row as word) as string
+declare sub tbl_delete_old_records(table_name as string)
+
+declare function tbl_all_get_table_index_offset(table_name_or_num as string) as word
+declare function tbl_all_get_num_records(byref num_of_records as word, table_name_or_num as string, include_deleted as no_yes) as en_tbl_status_codes
+declare function tbl_all_get_num_fields(table_name_or_num as string) as byte
+declare function tbl_all_get_field_info(table_name_or_num as string, field_index as integer, byref field_metadata as tbl_field_type) as en_tbl_status_codes
+declare function tbl_all_get_field_value(table_name_or_num as string, row_index as integer, field_name as string, byref field_value as string, raw as no_yes) as en_tbl_status_codes
+declare function tbl_all_is_in_memory(table_name as string) as no_yes
+declare function tbl_all_is_record_deleted(row_index as word, table_name_or_num as string) as no_yes
+declare sub tbl_static_set_field_value(table as string, row_index as word, field_name as string, field_value as string)
+declare sub tbl_static_set_table_size(table as string, row_index as word)
+declare function tbl_static_get_table_structure(table as string) as en_tbl_struct
+declare function tbl_static_delete_row(byref table as string, row as word) as string
+declare function tbl_static_clear_table(byref table as string) as string
+declare function tbl_static_edit_row(byref table as string, byref index as word, byref row as string) as string
+declare function tbl_static_get_fld_data(table as string, row_index as word, num_of_fld as byte) as string
+declare function tbl_static_get_fld_data_json(table as string, row_index as word, num_of_fld as byte) as string
+declare function tbl_static_get_header(byref table as string) as string
+declare function tbl_all_get_table_info(byref table_name_or_num as string, byref table_metadata as tbl_type) as en_tbl_status_codes
+
+declare sub tbl_in_memory_start()
+declare sub tbl_static_get_table_active_rows(byref table as string, byref tbl_rows as word, byref tbl_rows_all as word)
+
+declare function tbl_all_add_row(byref table as string, byref row as string) as string
+declare function tbl_static_add_row(byref table as string, byref row as string) as string
+
+
+declare function datetime_timestamp_seconds(timestamp as dword) as float            
+declare function datetime_timestamp_mins(timestamp as dword) as dword
+declare function datetime_mins_to_timestamp(mins as word) as dword
+
+
+declare sub lcd_display_widgets(screen as byte)
+declare sub lcd_display_img_widget(lcd_image_widget as lcd_img_widget)
+declare sub lcd_display_text_widget(lcd_text_widget as lcd_text_widget)
+declare sub lcd_init_widgets()
+
+declare lcd_img_widgets as lcd_img_widget(LCD_IMG_WIDGETS_COUNT)
+declare lcd_text_widgets as lcd_text_widget(LCD_TEXT_WIDGETS_COUNT)
+declare display_current_screen as byte
+
+
+declare sub lcd_log(text as string)
+
+const LOG_FONT_FILE = LCD_SMALL_FONT
+
+declare sub interface_set(interface as pl_sock_interfaces, state as no_yes)
+declare sub callback_system_error(byref tag as string, byref message as string)
+
+declare interface_ready(MAX_NUM_INTERFACES) as no_yes
+
+declare DEVICE_NAME as string(50)
+
+declare TIOS_VERSION as string(30)
+declare MAC_ADDRESS as string(20)
+
+declare APP_TIMEZONE as en_td_timezones
+declare APP_LATITUDE as float
+declare APP_LONGITUDE as float
+declare APP_LOGGING as string(10)
+
+
+declare current_interface as pl_sock_interfaces
+
+declare sub change_current_interface(new_interface as pl_sock_interfaces)
+declare sub close_interface_sockets(interface as pl_sock_interfaces)
+declare sub sys.debugprint(byref s as string)
+
+declare device_net_ip as string(16)
+declare device_net_mask as string(16)
+declare device_net_gateway as string(16)
+declare net_dhcp_enabled as boolean
+
+declare DNS_socket as byte
+
+declare SNTP_socket as byte
+declare SNTP_SERVER as string(16)
+
+declare sub callback_stgcmd_buzz_command()
+declare upgrade_socket_http as byte
+
+declare UPGRADE_URL as string
+
+declare var_poll_timer as dword
+declare TDoor_Master as float
+
+declare sub var_TDoor_Master_update()
+declare sub var_TDoor_Master_set(value as float)
+declare sub var_TDoor_Master_update_completed(value as float)
+
+declare TCP_Port as float
+
+declare sub var_TCP_Port_update()
+declare sub var_TCP_Port_set(value as float)
+declare sub var_TCP_Port_update_completed(value as float)
+
+declare T54_S9_L1 as boolean
+
+declare sub var_T54_S9_L1_update()
+declare sub var_T54_S9_L1_set(value as boolean)
+declare sub var_T54_S9_L1_update_completed(value as boolean)
+
+declare T54_S9_L2 as boolean
+
+declare sub var_T54_S9_L2_update()
+declare sub var_T54_S9_L2_set(value as boolean)
+declare sub var_T54_S9_L2_update_completed(value as boolean)
+
+declare T54_S9_L3 as boolean
+
+declare sub var_T54_S9_L3_update()
+declare sub var_T54_S9_L3_set(value as boolean)
+declare sub var_T54_S9_L3_update_completed(value as boolean)
+
+declare T54_S9_L4 as boolean
+
+declare sub var_T54_S9_L4_update()
+declare sub var_T54_S9_L4_set(value as boolean)
+declare sub var_T54_S9_L4_update_completed(value as boolean)
+
+declare T03_1_S1_L1 as boolean
+
+declare sub var_T03_1_S1_L1_update()
+declare sub var_T03_1_S1_L1_set(value as boolean)
+declare sub var_T03_1_S1_L1_update_completed(value as boolean)
+
+declare T03_1_S1_L2 as boolean
+
+declare sub var_T03_1_S1_L2_update()
+declare sub var_T03_1_S1_L2_set(value as boolean)
+declare sub var_T03_1_S1_L2_update_completed(value as boolean)
+
+declare T03_1_S3_L1 as boolean
+
+declare sub var_T03_1_S3_L1_update()
+declare sub var_T03_1_S3_L1_set(value as boolean)
+declare sub var_T03_1_S3_L1_update_completed(value as boolean)
+
+declare T03_1_S3_L2 as boolean
+
+declare sub var_T03_1_S3_L2_update()
+declare sub var_T03_1_S3_L2_set(value as boolean)
+declare sub var_T03_1_S3_L2_update_completed(value as boolean)
+
+declare T54_S7_L1 as boolean
+
+declare sub var_T54_S7_L1_update()
+declare sub var_T54_S7_L1_set(value as boolean)
+declare sub var_T54_S7_L1_update_completed(value as boolean)
+
+declare T54_S7_L2 as boolean
+
+declare sub var_T54_S7_L2_update()
+declare sub var_T54_S7_L2_set(value as boolean)
+declare sub var_T54_S7_L2_update_completed(value as boolean)
+
+declare T54_S7_L3 as boolean
+
+declare sub var_T54_S7_L3_update()
+declare sub var_T54_S7_L3_set(value as boolean)
+declare sub var_T54_S7_L3_update_completed(value as boolean)
+
+declare T54_S7_L4 as boolean
+
+declare sub var_T54_S7_L4_update()
+declare sub var_T54_S7_L4_set(value as boolean)
+declare sub var_T54_S7_L4_update_completed(value as boolean)
+
+declare T03_1_S5_L1 as boolean
+
+declare sub var_T03_1_S5_L1_update()
+declare sub var_T03_1_S5_L1_set(value as boolean)
+declare sub var_T03_1_S5_L1_update_completed(value as boolean)
+
+declare T03_1_S5_L2 as boolean
+
+declare sub var_T03_1_S5_L2_update()
+declare sub var_T03_1_S5_L2_set(value as boolean)
+declare sub var_T03_1_S5_L2_update_completed(value as boolean)
+
+declare stg1 as string(80)
+
+declare sub var_stg1_update()
+declare sub var_stg1_set(byref value as string)
+declare sub var_stg1_update_completed(byref value as string)
+
+declare DN as string(8)
+
+declare sub var_DN_update()
+declare sub var_DN_set(byref value as string)
+declare sub var_DN_update_completed(byref value as string)
+
+declare ON as string(8)
+
+declare sub var_ON_update()
+declare sub var_ON_set(byref value as string)
+declare sub var_ON_update_completed(byref value as string)
+
+declare PW as string(16)
+
+declare sub var_PW_update()
+declare sub var_PW_set(byref value as string)
+declare sub var_PW_update_completed(byref value as string)
+
+declare t1 as dword
+
+declare sub var_t1_update()
+declare sub var_t1_set(value as dword)
+declare sub var_t1_update_completed(value as dword)
+
+declare NETCP as float
+
+declare sub var_NETCP_update()
+declare sub var_NETCP_set(value as float)
+declare sub var_NETCP_update_completed(value as float)
+
+declare NETIP as string(16)
+
+declare sub var_NETIP_update()
+declare sub var_NETIP_set(byref value as string)
+declare sub var_NETIP_update_completed(byref value as string)
+
+declare NETNM as string(16)
+
+declare sub var_NETNM_update()
+declare sub var_NETNM_set(byref value as string)
+declare sub var_NETNM_update_completed(byref value as string)
+
+declare NETGW as string(16)
+
+declare sub var_NETGW_update()
+declare sub var_NETGW_set(byref value as string)
+declare sub var_NETGW_update_completed(byref value as string)
+
+
+declare timer_t1 as dword
+declare timer_t1_repeat as boolean=false
+declare timer_t1_CURRENT_MS as dword=0
+declare sub timer_t1_update()
+
+declare sub cmd_CMD1(byref data as string)
+
+declare S1_SOCK_NUM as byte
+
+#IFDEF TBL_MAX_NUM_TABLES
+declare sub tables_web_proc_sock_data_sent()
+#ENDIF
+
+
+'---- Nuovi settings (schema v1) ----------------------------------------
+
+declare SCHV as string(4)
+
+declare IN01 as string(80)
+declare IN02 as string(80)
+declare IN03 as string(80)
+declare IN04 as string(80)
+declare IN05 as string(80)
+declare IN06 as string(80)
+declare IN07 as string(80)
+declare IN08 as string(80)
+declare IN09 as string(80)
+
+declare OUT1 as string(40)
+declare OUT2 as string(40)
+declare OUT3 as string(40)
+declare OUT4 as string(40)
+declare OUT5 as string(40)
+declare OUT6 as string(40)
+
+declare MVIP as string(20)
+declare MVPT as string(6)
+declare MVUN as string(32)
+declare MVPW as string(32)
+declare XVPT as string(6)
+declare XVCM as string(32)
+declare XVDI as string(10)
+declare NTPIP as string(20)
+declare APTP as string(20)
+
+'---- Stato runtime I/O (RAM, mai EEPROM) --------------------------------
+
+' Stato corrente degli ingressi fisici (0=chiuso, 1=aperto, 2=allarme)
+declare in_state(NUM_INPUTS) as byte
+
+' Stato corrente delle uscite (0=OFF, 1=ON)
+declare out_state(NUM_OUTPUTS) as boolean
+
+' Timer per impulso uscite (0 = non attivo)
+declare pulse_end_ms(NUM_OUTPUTS) as dword
+
+'---- IO Manager — funzioni implementate in io_manager.tbs ---------------
+
+declare function get_csv_field(byref csv as string, field_idx as byte) as string
+declare sub evaluate_inputs()
+declare sub set_output(idx as byte, state as boolean)
+declare sub log_event(byref msg as string)
+
+'-------------------------------------------------------------------------
+
+declare sub boot()

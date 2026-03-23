@@ -1,0 +1,228 @@
+include "global.tbh"
+
+'==========================================================================
+' io_manager.tbs — Gestione ingressi e uscite
+'
+' Funzioni:
+'   get_csv_field()   — estrae un campo da una stringa CSV
+'   evaluate_inputs() — legge tutti gli ingressi e aggiorna le uscite
+'   set_output()      — imposta un'uscita con controllo lockOnActive
+'   log_event()       — scrive un evento nella tabella LOG
+'==========================================================================
+
+
+'--------------------------------------------------------------------------
+' get_csv_field
+' Estrae il campo field_idx (0-based) da una stringa CSV separata da virgole.
+' Esempio: get_csv_field("Porta1,NC,1,N,2,CamEst,Y", 0) => "Porta1"
+'--------------------------------------------------------------------------
+function get_csv_field(byref csv as string, field_idx as byte) as string
+    dim pos1 as word = 1
+    dim pos2 as word
+    dim i as byte = 0
+
+    if len(csv) = 0 then
+        get_csv_field = ""
+        exit function
+    end if
+
+    while i <= field_idx
+        pos2 = instr(pos1, csv, ",", 1)
+        if pos2 = 0 then
+            pos2 = len(csv) + 1
+        end if
+        if i = field_idx then
+            get_csv_field = mid(csv, pos1, pos2 - pos1)
+            exit function
+        end if
+        pos1 = pos2 + 1
+        i = i + 1
+    wend
+    get_csv_field = ""
+end function
+
+
+'--------------------------------------------------------------------------
+' get_input_state_raw
+' Ritorna lo stato fisico di un ingresso (0-based): true=aperto, false=chiuso.
+' Mapping:
+'   0 = T03_1_S1_L1  (ingresso 1)
+'   1 = T03_1_S1_L2  (ingresso 2)
+'   2 = T03_1_S3_L1  (ingresso 3)
+'   3 = T03_1_S3_L2  (ingresso 4)
+'   4 = T03_1_S5_L1  (ingresso 5)
+'   5 = T03_1_S5_L2  (ingresso 6)
+'   6 = T54_S7_L1    (ingresso 7)
+'   7 = T54_S7_L2    (ingresso 8)
+'   8 = T54_S7_L3    (ingresso 9)
+'--------------------------------------------------------------------------
+function get_input_state_raw(idx as byte) as boolean
+    select case idx
+    case 0: get_input_state_raw = io.lineget(T03_1_S1_L1_num)
+    case 1: get_input_state_raw = io.lineget(T03_1_S1_L2_num)
+    case 2: get_input_state_raw = io.lineget(T03_1_S3_L1_num)
+    case 3: get_input_state_raw = io.lineget(T03_1_S3_L2_num)
+    case 4: get_input_state_raw = io.lineget(T03_1_S5_L1_num)
+    case 5: get_input_state_raw = io.lineget(T03_1_S5_L2_num)
+    case 6: get_input_state_raw = io.lineget(T54_S7_L1_num)
+    case 7: get_input_state_raw = io.lineget(T54_S7_L2_num)
+    case 8: get_input_state_raw = io.lineget(T54_S7_L3_num)
+    case else: get_input_state_raw = false
+    end select
+end function
+
+
+'--------------------------------------------------------------------------
+' get_input_config
+' Ritorna il CSV di configurazione per l'ingresso idx (0-based).
+'--------------------------------------------------------------------------
+function get_input_config(idx as byte) as string
+    select case idx
+    case 0: get_input_config = IN01
+    case 1: get_input_config = IN02
+    case 2: get_input_config = IN03
+    case 3: get_input_config = IN04
+    case 4: get_input_config = IN05
+    case 5: get_input_config = IN06
+    case 6: get_input_config = IN07
+    case 7: get_input_config = IN08
+    case 8: get_input_config = IN09
+    case else: get_input_config = ""
+    end select
+end function
+
+
+'--------------------------------------------------------------------------
+' set_output
+' Imposta l'uscita idx (0-based) allo stato richiesto.
+' Se state=false e l'uscita è bloccata (lockOnActive=Y su un ingresso
+' ancora attivo che la pilota), il comando viene ignorato.
+'
+' Mapping uscite 0-3 → T54_S9_L1-L4 (fisico)
+'         uscite 4-5 → solo variabile RAM (hardware TBD)
+'--------------------------------------------------------------------------
+sub set_output(idx as byte, state as boolean)
+    if idx >= NUM_OUTPUTS then exit sub
+
+    ' Controllo lockOnActive: se richiesto OFF, verifica se è bloccato
+    if state = false then
+        dim i as byte
+        for i = 0 to NUM_INPUTS - 1
+            dim cfg as string = get_input_config(i)
+            if len(cfg) > 0 then
+                dim linked_out as byte = val(get_csv_field(cfg, 4))  ' campo linkOutput (0=nessuna, 1-6)
+                if linked_out > 0 then
+                    if linked_out - 1 = idx then  ' questa uscita è pilotata dall'ingresso i
+                        dim lock_on_active as string = get_csv_field(cfg, 6)  ' campo lockOnActive
+                        if lock_on_active = "Y" then
+                            ' Verifica stato fisico corrente
+                            if in_state(i) > 0 then  ' ingresso ancora attivo/allarme
+                                sys.debugprint("OUT" + str(idx+1) + " bloccata: ingresso " + str(i+1) + " ancora attivo\r\n")
+                                exit sub
+                            end if
+                        end if
+                    end if
+                end if
+            end if
+        next i
+    end if
+
+    out_state(idx) = state
+
+    ' Applica lo stato fisico per le uscite mappate su T54_S9
+    select case idx
+    case 0: io.lineset(T54_S9_L1_num, state)
+    case 1: io.lineset(T54_S9_L2_num, state)
+    case 2: io.lineset(T54_S9_L3_num, state)
+    case 3: io.lineset(T54_S9_L4_num, state)
+    ' uscite 4-5: solo RAM, hardware non ancora connesso
+    end select
+end sub
+
+
+'--------------------------------------------------------------------------
+' evaluate_inputs
+' Legge tutti gli ingressi fisici, aggiorna in_state() e pilota le uscite
+' associate secondo la configurazione CSV di ogni ingresso.
+'
+' Formato CSV ingresso (IN01..IN09):
+'   nome, tipo(NC/NO), doorState(0-6), alarmOnMuted(Y/N),
+'   linkOutput(0-6), milestoneName, lockOnActive(Y/N)
+'   campo 0=nome, 1=tipo, 2=doorState, 3=alarmOnMuted,
+'         4=linkOutput, 5=milestoneName, 6=lockOnActive
+'--------------------------------------------------------------------------
+sub evaluate_inputs()
+    dim i as byte
+    for i = 0 to NUM_INPUTS - 1
+        dim cfg as string = get_input_config(i)
+        if len(cfg) = 0 then
+            ' Ingresso non configurato — salta
+            in_state(i) = 0
+        else
+            dim tipo as string = get_csv_field(cfg, 1)  ' NC o NO
+            dim raw_state as boolean = get_input_state_raw(i)
+            dim is_active as boolean
+
+            ' Tibbit 03.1: HIGH = circuito aperto (porta aperta), LOW = chiuso
+            ' Per NC: active se HIGH (porta aperta = anomalia)
+            ' Per NO: active se LOW (contatto chiuso = evento)
+            if tipo = "NC" then
+                is_active = raw_state  ' HIGH=1=aperto=anomalia
+            else  ' NO
+                is_active = (raw_state = false)  ' LOW=0=chiuso=evento
+            end if
+
+            ' Aggiorna stato in_state: 0=normale, 1=attivo
+            if is_active then
+                if in_state(i) = 0 then
+                    ' Transizione OFF→ON: logga evento
+                    log_event("IN" + str(i+1) + " ATTIVO: " + get_csv_field(cfg, 0))
+                end if
+                in_state(i) = 1
+            else
+                if in_state(i) > 0 then
+                    ' Transizione ON→OFF: logga ripristino
+                    log_event("IN" + str(i+1) + " NORMALE: " + get_csv_field(cfg, 0))
+                end if
+                in_state(i) = 0
+            end if
+
+            ' Pilota l'uscita associata (se configurata)
+            dim linked_out as byte = val(get_csv_field(cfg, 4))  ' 0=nessuna, 1-6=uscita
+            if linked_out > 0 AND linked_out <= NUM_OUTPUTS then
+                dim out_idx as byte = linked_out - 1
+                if is_active then
+                    ' Ingresso attivo → uscita ON
+                    if out_state(out_idx) = false then
+                        out_state(out_idx) = true
+                        select case out_idx
+                        case 0: io.lineset(T54_S9_L1_num, true)
+                        case 1: io.lineset(T54_S9_L2_num, true)
+                        case 2: io.lineset(T54_S9_L3_num, true)
+                        case 3: io.lineset(T54_S9_L4_num, true)
+                        end select
+                    end if
+                else
+                    ' Ingresso tornato normale → prova a spegnere l'uscita
+                    ' (set_output gestisce il controllo lockOnActive)
+                    if out_state(out_idx) = true then
+                        set_output(out_idx, false)
+                    end if
+                end if
+            end if
+        end if
+    next i
+end sub
+
+
+'--------------------------------------------------------------------------
+' log_event
+' Aggiunge una riga alla tabella LOG con timestamp corrente e messaggio.
+'--------------------------------------------------------------------------
+sub log_event(byref msg as string)
+#IFDEF TBL_MAX_NUM_TABLES
+    dim ts as dword = datetime_current_timestamp()
+    tbl_all_add_row("LOG", "\x22" + lstr(ts) + "\x22,\x22" + left(msg, 121) + "\x22")
+    tbl_delete_old_records("LOG")
+#ENDIF
+end sub

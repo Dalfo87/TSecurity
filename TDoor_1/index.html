@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+</head>
+
+<body>
+    <div id="root">
+        <span id="loading">Loading</span><span id="loader"></span>
+    </div>
+    <script type="module" src="./console_Main.js"></script>
+    <!-- <link rel="stylesheet" href="./Main.css"> -->
+    <script>
+		var loadingText = "";
+		function setLoading() {
+			try {
+				var contents = document.getElementById("loading").innerText;
+				if (contents != "Loading") {
+					clearInterval(loader);
+				} else {
+					loadingText = loadingText + ".";
+					if (loadingText.length == 5) {
+						loadingText = ".";
+					}
+					document.getElementById("loader").innerText = loadingText;
+				}
+			} catch(ex) {
+				clearInterval(loader);
+			}
+		}
+		var loader = setInterval(setLoading, 300);
+    </script>
+</body>
+</html>
