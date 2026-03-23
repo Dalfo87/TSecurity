@@ -15,7 +15,6 @@
 >>IN06	E	S	1	0	80	A	^	Config Ingresso 6
 >>IN07	E	S	1	0	80	A	^	Config Ingresso 7
 >>IN08	E	S	1	0	80	A	^	Config Ingresso 8
->>IN09	E	S	1	0	80	A	^	Config Ingresso 9
 >>OUT1	E	S	1	0	40	A	^	Config Uscita 1
 >>OUT2	E	S	1	0	40	A	^	Config Uscita 2
 >>OUT3	E	S	1	0	40	A	^	Config Uscita 3

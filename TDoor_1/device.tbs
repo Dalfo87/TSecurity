@@ -69,7 +69,6 @@ sub callback_stg_post_set(byref stg_name_or_num as string, index as byte,byref s
     if stg_name_or_num="IN06" then IN06=stg_value
     if stg_name_or_num="IN07" then IN07=stg_value
     if stg_name_or_num="IN08" then IN08=stg_value
-    if stg_name_or_num="IN09" then IN09=stg_value
     if stg_name_or_num="OUT1" then OUT1=stg_value
     if stg_name_or_num="OUT2" then OUT2=stg_value
     if stg_name_or_num="OUT3" then OUT3=stg_value
@@ -1520,7 +1519,6 @@ function callback_http_server_endpoint_called(byref server as http_server_state)
                         case "IN06": var_value= "\x22"+IN06+"\x22"
                         case "IN07": var_value= "\x22"+IN07+"\x22"
                         case "IN08": var_value= "\x22"+IN08+"\x22"
-                        case "IN09": var_value= "\x22"+IN09+"\x22"
                         case "OUT1": var_value= "\x22"+OUT1+"\x22"
                         case "OUT2": var_value= "\x22"+OUT2+"\x22"
                         case "OUT3": var_value= "\x22"+OUT3+"\x22"
@@ -1560,7 +1558,7 @@ function callback_http_server_endpoint_called(byref server as http_server_state)
                         case "stg1":
                             var_stg1_set(value)
                         ' Nuovi settings — scrivi in EEPROM tramite stg_set
-                        case "IN01","IN02","IN03","IN04","IN05","IN06","IN07","IN08","IN09":
+                        case "IN01","IN02","IN03","IN04","IN05","IN06","IN07","IN08":
                             stg_set(variable, 0, value)
                         case "OUT1","OUT2","OUT3","OUT4","OUT5","OUT6":
                             stg_set(variable, 0, value)
@@ -2105,577 +2103,191 @@ sub var_TCP_Port_set(value as float)
 end sub
             
 
-sub var_T54_S9_L1_update()
-    
-    var_T54_S9_L1_update_completed(io.lineget(T54_S9_L1_num))
+sub var_IN1_update()
+    var_IN1_update_completed(io.lineget(IN_S7_L1_num))
 end sub
             
 
-sub var_T54_S9_L1_update_completed(value as boolean)
-    dim value_old as boolean = T54_S9_L1
-    
+'=== IN1..IN8 — Ingressi fisici (Tibbit #54: S7=IN1-4, S9=IN5-8) ===
+
+sub var_IN1_update_completed(value as boolean)
+    dim value_old as boolean = IN1
     if value < 0 then value = 0
     if value > 1 then value = 1
-    T54_S9_L1=value
-    if value_old <> T54_S9_L1 then
-        
+    IN1=value
+    if value_old <> IN1 then
         #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S9_L1 changed from " + str(value_old) + " to " +  str(T54_S9_L1) + "\r\n")
+            sys.debugprint("VAR> IN1 changed from " + str(value_old) + " to " + str(IN1) + "\r\n")
         #endif
     end if
-    
 end sub
-            
 
-sub var_T54_S9_L1_set(value as boolean)
+sub var_IN1_set(value as boolean)
     if value < 0 then value = 0
     if value > 1 then value = 1
-    dim value_old as boolean = T54_S9_L1
-    T54_S9_L1=value
-    
-    
-    io.lineset(T54_S9_L1_num, value)
-
-    if value_old <> T54_S9_L1 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S9_L1 changed from " + str(value_old) + " to " +  str(T54_S9_L1) + "\r\n")
-        #endif
-        
-        
-    end if
+    IN1=value
+    io.lineset(IN_S7_L1_num, value)
 end sub
-            
 
-sub var_T54_S9_L2_update()
-    
-    var_T54_S9_L2_update_completed(io.lineget(T54_S9_L2_num))
+sub var_IN2_update()
+    var_IN2_update_completed(io.lineget(IN_S7_L2_num))
 end sub
-            
 
-sub var_T54_S9_L2_update_completed(value as boolean)
-    dim value_old as boolean = T54_S9_L2
-    
+sub var_IN2_update_completed(value as boolean)
+    dim value_old as boolean = IN2
     if value < 0 then value = 0
     if value > 1 then value = 1
-    T54_S9_L2=value
-    if value_old <> T54_S9_L2 then
-        
+    IN2=value
+    if value_old <> IN2 then
         #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S9_L2 changed from " + str(value_old) + " to " +  str(T54_S9_L2) + "\r\n")
+            sys.debugprint("VAR> IN2 changed from " + str(value_old) + " to " + str(IN2) + "\r\n")
         #endif
     end if
-    
 end sub
-            
 
-sub var_T54_S9_L2_set(value as boolean)
+sub var_IN2_set(value as boolean)
     if value < 0 then value = 0
     if value > 1 then value = 1
-    dim value_old as boolean = T54_S9_L2
-    T54_S9_L2=value
-    
-    
-    io.lineset(T54_S9_L2_num, value)
-
-    if value_old <> T54_S9_L2 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S9_L2 changed from " + str(value_old) + " to " +  str(T54_S9_L2) + "\r\n")
-        #endif
-        
-        
-    end if
+    IN2=value
+    io.lineset(IN_S7_L2_num, value)
 end sub
-            
 
-sub var_T54_S9_L3_update()
-    
-    var_T54_S9_L3_update_completed(io.lineget(T54_S9_L3_num))
+sub var_IN3_update()
+    var_IN3_update_completed(io.lineget(IN_S7_L3_num))
 end sub
-            
 
-sub var_T54_S9_L3_update_completed(value as boolean)
-    dim value_old as boolean = T54_S9_L3
-    
+sub var_IN3_update_completed(value as boolean)
+    dim value_old as boolean = IN3
     if value < 0 then value = 0
     if value > 1 then value = 1
-    T54_S9_L3=value
-    if value_old <> T54_S9_L3 then
-        
+    IN3=value
+    if value_old <> IN3 then
         #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S9_L3 changed from " + str(value_old) + " to " +  str(T54_S9_L3) + "\r\n")
+            sys.debugprint("VAR> IN3 changed from " + str(value_old) + " to " + str(IN3) + "\r\n")
         #endif
     end if
-    
 end sub
-            
 
-sub var_T54_S9_L3_set(value as boolean)
+sub var_IN3_set(value as boolean)
     if value < 0 then value = 0
     if value > 1 then value = 1
-    dim value_old as boolean = T54_S9_L3
-    T54_S9_L3=value
-    
-    
-    io.lineset(T54_S9_L3_num, value)
-
-    if value_old <> T54_S9_L3 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S9_L3 changed from " + str(value_old) + " to " +  str(T54_S9_L3) + "\r\n")
-        #endif
-        
-        
-    end if
+    IN3=value
+    io.lineset(IN_S7_L3_num, value)
 end sub
-            
 
-sub var_T54_S9_L4_update()
-    
-    var_T54_S9_L4_update_completed(io.lineget(T54_S9_L4_num))
+sub var_IN4_update()
+    var_IN4_update_completed(io.lineget(IN_S7_L4_num))
 end sub
-            
 
-sub var_T54_S9_L4_update_completed(value as boolean)
-    dim value_old as boolean = T54_S9_L4
-    
+sub var_IN4_update_completed(value as boolean)
+    dim value_old as boolean = IN4
     if value < 0 then value = 0
     if value > 1 then value = 1
-    T54_S9_L4=value
-    if value_old <> T54_S9_L4 then
-        
+    IN4=value
+    if value_old <> IN4 then
         #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S9_L4 changed from " + str(value_old) + " to " +  str(T54_S9_L4) + "\r\n")
+            sys.debugprint("VAR> IN4 changed from " + str(value_old) + " to " + str(IN4) + "\r\n")
         #endif
     end if
-    
 end sub
-            
 
-sub var_T54_S9_L4_set(value as boolean)
+sub var_IN4_set(value as boolean)
     if value < 0 then value = 0
     if value > 1 then value = 1
-    dim value_old as boolean = T54_S9_L4
-    T54_S9_L4=value
-    
-    
-    io.lineset(T54_S9_L4_num, value)
-
-    if value_old <> T54_S9_L4 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S9_L4 changed from " + str(value_old) + " to " +  str(T54_S9_L4) + "\r\n")
-        #endif
-        
-        
-    end if
+    IN4=value
+    io.lineset(IN_S7_L4_num, value)
 end sub
-            
 
-sub var_T03_1_S1_L1_update()
-    
-    var_T03_1_S1_L1_update_completed(io.lineget(T03_1_S1_L1_num))
+sub var_IN5_update()
+    var_IN5_update_completed(io.lineget(IN_S9_L1_num))
 end sub
-            
 
-sub var_T03_1_S1_L1_update_completed(value as boolean)
-    dim value_old as boolean = T03_1_S1_L1
-    
+sub var_IN5_update_completed(value as boolean)
+    dim value_old as boolean = IN5
     if value < 0 then value = 0
     if value > 1 then value = 1
-    T03_1_S1_L1=value
-    if value_old <> T03_1_S1_L1 then
-        
+    IN5=value
+    if value_old <> IN5 then
         #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T03_1_S1_L1 changed from " + str(value_old) + " to " +  str(T03_1_S1_L1) + "\r\n")
+            sys.debugprint("VAR> IN5 changed from " + str(value_old) + " to " + str(IN5) + "\r\n")
         #endif
     end if
-    
 end sub
-            
 
-sub var_T03_1_S1_L1_set(value as boolean)
+sub var_IN5_set(value as boolean)
     if value < 0 then value = 0
     if value > 1 then value = 1
-    dim value_old as boolean = T03_1_S1_L1
-    T03_1_S1_L1=value
-    
-    
-    io.lineset(T03_1_S1_L1_num, value)
-
-    if value_old <> T03_1_S1_L1 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T03_1_S1_L1 changed from " + str(value_old) + " to " +  str(T03_1_S1_L1) + "\r\n")
-        #endif
-        
-        
-    end if
+    IN5=value
+    io.lineset(IN_S9_L1_num, value)
 end sub
-            
 
-sub var_T03_1_S1_L2_update()
-    
-    var_T03_1_S1_L2_update_completed(io.lineget(T03_1_S1_L2_num))
+sub var_IN6_update()
+    var_IN6_update_completed(io.lineget(IN_S9_L2_num))
 end sub
-            
 
-sub var_T03_1_S1_L2_update_completed(value as boolean)
-    dim value_old as boolean = T03_1_S1_L2
-    
+sub var_IN6_update_completed(value as boolean)
+    dim value_old as boolean = IN6
     if value < 0 then value = 0
     if value > 1 then value = 1
-    T03_1_S1_L2=value
-    if value_old <> T03_1_S1_L2 then
-        
+    IN6=value
+    if value_old <> IN6 then
         #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T03_1_S1_L2 changed from " + str(value_old) + " to " +  str(T03_1_S1_L2) + "\r\n")
+            sys.debugprint("VAR> IN6 changed from " + str(value_old) + " to " + str(IN6) + "\r\n")
         #endif
     end if
-    
 end sub
-            
 
-sub var_T03_1_S1_L2_set(value as boolean)
+sub var_IN6_set(value as boolean)
     if value < 0 then value = 0
     if value > 1 then value = 1
-    dim value_old as boolean = T03_1_S1_L2
-    T03_1_S1_L2=value
-    
-    
-    io.lineset(T03_1_S1_L2_num, value)
-
-    if value_old <> T03_1_S1_L2 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T03_1_S1_L2 changed from " + str(value_old) + " to " +  str(T03_1_S1_L2) + "\r\n")
-        #endif
-        
-        
-    end if
+    IN6=value
+    io.lineset(IN_S9_L2_num, value)
 end sub
-            
 
-sub var_T03_1_S3_L1_update()
-    
-    var_T03_1_S3_L1_update_completed(io.lineget(T03_1_S3_L1_num))
+sub var_IN7_update()
+    var_IN7_update_completed(io.lineget(IN_S9_L3_num))
 end sub
-            
 
-sub var_T03_1_S3_L1_update_completed(value as boolean)
-    dim value_old as boolean = T03_1_S3_L1
-    
+sub var_IN7_update_completed(value as boolean)
+    dim value_old as boolean = IN7
     if value < 0 then value = 0
     if value > 1 then value = 1
-    T03_1_S3_L1=value
-    if value_old <> T03_1_S3_L1 then
-        
+    IN7=value
+    if value_old <> IN7 then
         #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T03_1_S3_L1 changed from " + str(value_old) + " to " +  str(T03_1_S3_L1) + "\r\n")
+            sys.debugprint("VAR> IN7 changed from " + str(value_old) + " to " + str(IN7) + "\r\n")
         #endif
     end if
-    
 end sub
-            
 
-sub var_T03_1_S3_L1_set(value as boolean)
+sub var_IN7_set(value as boolean)
     if value < 0 then value = 0
     if value > 1 then value = 1
-    dim value_old as boolean = T03_1_S3_L1
-    T03_1_S3_L1=value
-    
-    
-    io.lineset(T03_1_S3_L1_num, value)
-
-    if value_old <> T03_1_S3_L1 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T03_1_S3_L1 changed from " + str(value_old) + " to " +  str(T03_1_S3_L1) + "\r\n")
-        #endif
-        
-        
-    end if
+    IN7=value
+    io.lineset(IN_S9_L3_num, value)
 end sub
-            
 
-sub var_T03_1_S3_L2_update()
-    
-    var_T03_1_S3_L2_update_completed(io.lineget(T03_1_S3_L2_num))
+sub var_IN8_update()
+    var_IN8_update_completed(io.lineget(IN_S9_L4_num))
 end sub
-            
 
-sub var_T03_1_S3_L2_update_completed(value as boolean)
-    dim value_old as boolean = T03_1_S3_L2
-    
+sub var_IN8_update_completed(value as boolean)
+    dim value_old as boolean = IN8
     if value < 0 then value = 0
     if value > 1 then value = 1
-    T03_1_S3_L2=value
-    if value_old <> T03_1_S3_L2 then
-        
+    IN8=value
+    if value_old <> IN8 then
         #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T03_1_S3_L2 changed from " + str(value_old) + " to " +  str(T03_1_S3_L2) + "\r\n")
+            sys.debugprint("VAR> IN8 changed from " + str(value_old) + " to " + str(IN8) + "\r\n")
         #endif
     end if
-    
 end sub
-            
 
-sub var_T03_1_S3_L2_set(value as boolean)
+sub var_IN8_set(value as boolean)
     if value < 0 then value = 0
     if value > 1 then value = 1
-    dim value_old as boolean = T03_1_S3_L2
-    T03_1_S3_L2=value
-    
-    
-    io.lineset(T03_1_S3_L2_num, value)
-
-    if value_old <> T03_1_S3_L2 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T03_1_S3_L2 changed from " + str(value_old) + " to " +  str(T03_1_S3_L2) + "\r\n")
-        #endif
-        
-        
-    end if
-end sub
-            
-
-sub var_T54_S7_L1_update()
-    
-    var_T54_S7_L1_update_completed(io.lineget(T54_S7_L1_num))
-end sub
-            
-
-sub var_T54_S7_L1_update_completed(value as boolean)
-    dim value_old as boolean = T54_S7_L1
-    
-    if value < 0 then value = 0
-    if value > 1 then value = 1
-    T54_S7_L1=value
-    if value_old <> T54_S7_L1 then
-        
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S7_L1 changed from " + str(value_old) + " to " +  str(T54_S7_L1) + "\r\n")
-        #endif
-    end if
-    
-end sub
-            
-
-sub var_T54_S7_L1_set(value as boolean)
-    if value < 0 then value = 0
-    if value > 1 then value = 1
-    dim value_old as boolean = T54_S7_L1
-    T54_S7_L1=value
-    
-    
-    io.lineset(T54_S7_L1_num, value)
-
-    if value_old <> T54_S7_L1 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S7_L1 changed from " + str(value_old) + " to " +  str(T54_S7_L1) + "\r\n")
-        #endif
-        
-        
-    end if
-end sub
-            
-
-sub var_T54_S7_L2_update()
-    
-    var_T54_S7_L2_update_completed(io.lineget(T54_S7_L2_num))
-end sub
-            
-
-sub var_T54_S7_L2_update_completed(value as boolean)
-    dim value_old as boolean = T54_S7_L2
-    
-    if value < 0 then value = 0
-    if value > 1 then value = 1
-    T54_S7_L2=value
-    if value_old <> T54_S7_L2 then
-        
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S7_L2 changed from " + str(value_old) + " to " +  str(T54_S7_L2) + "\r\n")
-        #endif
-    end if
-    
-end sub
-            
-
-sub var_T54_S7_L2_set(value as boolean)
-    if value < 0 then value = 0
-    if value > 1 then value = 1
-    dim value_old as boolean = T54_S7_L2
-    T54_S7_L2=value
-    
-    
-    io.lineset(T54_S7_L2_num, value)
-
-    if value_old <> T54_S7_L2 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S7_L2 changed from " + str(value_old) + " to " +  str(T54_S7_L2) + "\r\n")
-        #endif
-        
-        
-    end if
-end sub
-            
-
-sub var_T54_S7_L3_update()
-    
-    var_T54_S7_L3_update_completed(io.lineget(T54_S7_L3_num))
-end sub
-            
-
-sub var_T54_S7_L3_update_completed(value as boolean)
-    dim value_old as boolean = T54_S7_L3
-    
-    if value < 0 then value = 0
-    if value > 1 then value = 1
-    T54_S7_L3=value
-    if value_old <> T54_S7_L3 then
-        
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S7_L3 changed from " + str(value_old) + " to " +  str(T54_S7_L3) + "\r\n")
-        #endif
-    end if
-    
-end sub
-            
-
-sub var_T54_S7_L3_set(value as boolean)
-    if value < 0 then value = 0
-    if value > 1 then value = 1
-    dim value_old as boolean = T54_S7_L3
-    T54_S7_L3=value
-    
-    
-    io.lineset(T54_S7_L3_num, value)
-
-    if value_old <> T54_S7_L3 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S7_L3 changed from " + str(value_old) + " to " +  str(T54_S7_L3) + "\r\n")
-        #endif
-        
-        
-    end if
-end sub
-            
-
-sub var_T54_S7_L4_update()
-    
-    var_T54_S7_L4_update_completed(io.lineget(T54_S7_L4_num))
-end sub
-            
-
-sub var_T54_S7_L4_update_completed(value as boolean)
-    dim value_old as boolean = T54_S7_L4
-    
-    if value < 0 then value = 0
-    if value > 1 then value = 1
-    T54_S7_L4=value
-    if value_old <> T54_S7_L4 then
-        
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S7_L4 changed from " + str(value_old) + " to " +  str(T54_S7_L4) + "\r\n")
-        #endif
-    end if
-    
-end sub
-            
-
-sub var_T54_S7_L4_set(value as boolean)
-    if value < 0 then value = 0
-    if value > 1 then value = 1
-    dim value_old as boolean = T54_S7_L4
-    T54_S7_L4=value
-    
-    
-    io.lineset(T54_S7_L4_num, value)
-
-    if value_old <> T54_S7_L4 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T54_S7_L4 changed from " + str(value_old) + " to " +  str(T54_S7_L4) + "\r\n")
-        #endif
-        
-        
-    end if
-end sub
-            
-
-sub var_T03_1_S5_L1_update()
-    
-    var_T03_1_S5_L1_update_completed(io.lineget(T03_1_S5_L1_num))
-end sub
-            
-
-sub var_T03_1_S5_L1_update_completed(value as boolean)
-    dim value_old as boolean = T03_1_S5_L1
-    
-    if value < 0 then value = 0
-    if value > 1 then value = 1
-    T03_1_S5_L1=value
-    if value_old <> T03_1_S5_L1 then
-        
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T03_1_S5_L1 changed from " + str(value_old) + " to " +  str(T03_1_S5_L1) + "\r\n")
-        #endif
-    end if
-    
-end sub
-            
-
-sub var_T03_1_S5_L1_set(value as boolean)
-    if value < 0 then value = 0
-    if value > 1 then value = 1
-    dim value_old as boolean = T03_1_S5_L1
-    T03_1_S5_L1=value
-    
-    
-    io.lineset(T03_1_S5_L1_num, value)
-
-    if value_old <> T03_1_S5_L1 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T03_1_S5_L1 changed from " + str(value_old) + " to " +  str(T03_1_S5_L1) + "\r\n")
-        #endif
-        
-        
-    end if
-end sub
-            
-
-sub var_T03_1_S5_L2_update()
-    
-    var_T03_1_S5_L2_update_completed(io.lineget(T03_1_S5_L2_num))
-end sub
-            
-
-sub var_T03_1_S5_L2_update_completed(value as boolean)
-    dim value_old as boolean = T03_1_S5_L2
-    
-    if value < 0 then value = 0
-    if value > 1 then value = 1
-    T03_1_S5_L2=value
-    if value_old <> T03_1_S5_L2 then
-        
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T03_1_S5_L2 changed from " + str(value_old) + " to " +  str(T03_1_S5_L2) + "\r\n")
-        #endif
-    end if
-    
-end sub
-            
-
-sub var_T03_1_S5_L2_set(value as boolean)
-    if value < 0 then value = 0
-    if value > 1 then value = 1
-    dim value_old as boolean = T03_1_S5_L2
-    T03_1_S5_L2=value
-    
-    
-    io.lineset(T03_1_S5_L2_num, value)
-
-    if value_old <> T03_1_S5_L2 then
-        #if VARIABLES_DEBUG_PRINT
-            sys.debugprint("VAR> T03_1_S5_L2 changed from " + str(value_old) + " to " +  str(T03_1_S5_L2) + "\r\n")
-        #endif
-        
-        
-    end if
+    IN8=value
+    io.lineset(IN_S9_L4_num, value)
 end sub
             
 

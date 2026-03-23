@@ -164,36 +164,26 @@ const APP_ID="6995b54f92cde91151fae384"
 const SCHEMA_VERSION="1"
 
 'Numero ingressi e uscite fisici
-const NUM_INPUTS=9
+const NUM_INPUTS=8
 const NUM_OUTPUTS=6
 
-const T54_S9_L1_num = PL_IO_NUM_32
+'--- Uscite: Tibbit #03.1 (2 relè/slot) su S1, S3, S5 ---
+const OUT_S1_L1_num = PL_IO_NUM_9_TX0   ' OUT1 — S1 L1
+const OUT_S1_L2_num = PL_IO_NUM_8_RX0   ' OUT2 — S1 L2
+const OUT_S3_L1_num = PL_IO_NUM_11_TX1  ' OUT3 — S3 L1
+const OUT_S3_L2_num = PL_IO_NUM_10_RX1  ' OUT4 — S3 L2
+const OUT_S5_L1_num = PL_IO_NUM_13_TX2  ' OUT5 — S5 L1
+const OUT_S5_L2_num = PL_IO_NUM_12_RX2  ' OUT6 — S5 L2
 
-const T54_S9_L2_num = PL_IO_NUM_33
-
-const T54_S9_L3_num = PL_IO_NUM_4
-
-const T54_S9_L4_num = PL_IO_NUM_20_INT4
-
-const T03_1_S1_L1_num = PL_IO_NUM_9_TX0
-
-const T03_1_S1_L2_num = PL_IO_NUM_8_RX0
-
-const T03_1_S3_L1_num = PL_IO_NUM_11_TX1
-
-const T03_1_S3_L2_num = PL_IO_NUM_10_RX1
-
-const T54_S7_L1_num = PL_IO_NUM_15_TX3
-
-const T54_S7_L2_num = PL_IO_NUM_14_RX3
-
-const T54_S7_L3_num = PL_IO_NUM_3
-
-const T54_S7_L4_num = PL_IO_NUM_19_INT3
-
-const T03_1_S5_L1_num = PL_IO_NUM_13_TX2
-
-const T03_1_S5_L2_num = PL_IO_NUM_12_RX2
+'--- Ingressi: Tibbit #54 (4 input/slot) su S7, S9 ---
+const IN_S7_L1_num  = PL_IO_NUM_15_TX3  ' IN1 — S7 L1
+const IN_S7_L2_num  = PL_IO_NUM_14_RX3  ' IN2 — S7 L2
+const IN_S7_L3_num  = PL_IO_NUM_3       ' IN3 — S7 L3
+const IN_S7_L4_num  = PL_IO_NUM_19_INT3 ' IN4 — S7 L4
+const IN_S9_L1_num  = PL_IO_NUM_32      ' IN5 — S9 L1
+const IN_S9_L2_num  = PL_IO_NUM_33      ' IN6 — S9 L2
+const IN_S9_L3_num  = PL_IO_NUM_4       ' IN7 — S9 L3
+const IN_S9_L4_num  = PL_IO_NUM_20_INT4 ' IN8 — S9 L4
 
 
 
@@ -324,89 +314,55 @@ declare sub var_TCP_Port_update()
 declare sub var_TCP_Port_set(value as float)
 declare sub var_TCP_Port_update_completed(value as float)
 
-declare T54_S9_L1 as boolean
+'---- Ingressi fisici IN1-IN8 (Tibbit #54: S7=IN1-4, S9=IN5-8) --------
 
-declare sub var_T54_S9_L1_update()
-declare sub var_T54_S9_L1_set(value as boolean)
-declare sub var_T54_S9_L1_update_completed(value as boolean)
+declare IN1 as boolean
 
-declare T54_S9_L2 as boolean
+declare sub var_IN1_update()
+declare sub var_IN1_set(value as boolean)
+declare sub var_IN1_update_completed(value as boolean)
 
-declare sub var_T54_S9_L2_update()
-declare sub var_T54_S9_L2_set(value as boolean)
-declare sub var_T54_S9_L2_update_completed(value as boolean)
+declare IN2 as boolean
 
-declare T54_S9_L3 as boolean
+declare sub var_IN2_update()
+declare sub var_IN2_set(value as boolean)
+declare sub var_IN2_update_completed(value as boolean)
 
-declare sub var_T54_S9_L3_update()
-declare sub var_T54_S9_L3_set(value as boolean)
-declare sub var_T54_S9_L3_update_completed(value as boolean)
+declare IN3 as boolean
 
-declare T54_S9_L4 as boolean
+declare sub var_IN3_update()
+declare sub var_IN3_set(value as boolean)
+declare sub var_IN3_update_completed(value as boolean)
 
-declare sub var_T54_S9_L4_update()
-declare sub var_T54_S9_L4_set(value as boolean)
-declare sub var_T54_S9_L4_update_completed(value as boolean)
+declare IN4 as boolean
 
-declare T03_1_S1_L1 as boolean
+declare sub var_IN4_update()
+declare sub var_IN4_set(value as boolean)
+declare sub var_IN4_update_completed(value as boolean)
 
-declare sub var_T03_1_S1_L1_update()
-declare sub var_T03_1_S1_L1_set(value as boolean)
-declare sub var_T03_1_S1_L1_update_completed(value as boolean)
+declare IN5 as boolean
 
-declare T03_1_S1_L2 as boolean
+declare sub var_IN5_update()
+declare sub var_IN5_set(value as boolean)
+declare sub var_IN5_update_completed(value as boolean)
 
-declare sub var_T03_1_S1_L2_update()
-declare sub var_T03_1_S1_L2_set(value as boolean)
-declare sub var_T03_1_S1_L2_update_completed(value as boolean)
+declare IN6 as boolean
 
-declare T03_1_S3_L1 as boolean
+declare sub var_IN6_update()
+declare sub var_IN6_set(value as boolean)
+declare sub var_IN6_update_completed(value as boolean)
 
-declare sub var_T03_1_S3_L1_update()
-declare sub var_T03_1_S3_L1_set(value as boolean)
-declare sub var_T03_1_S3_L1_update_completed(value as boolean)
+declare IN7 as boolean
 
-declare T03_1_S3_L2 as boolean
+declare sub var_IN7_update()
+declare sub var_IN7_set(value as boolean)
+declare sub var_IN7_update_completed(value as boolean)
 
-declare sub var_T03_1_S3_L2_update()
-declare sub var_T03_1_S3_L2_set(value as boolean)
-declare sub var_T03_1_S3_L2_update_completed(value as boolean)
+declare IN8 as boolean
 
-declare T54_S7_L1 as boolean
-
-declare sub var_T54_S7_L1_update()
-declare sub var_T54_S7_L1_set(value as boolean)
-declare sub var_T54_S7_L1_update_completed(value as boolean)
-
-declare T54_S7_L2 as boolean
-
-declare sub var_T54_S7_L2_update()
-declare sub var_T54_S7_L2_set(value as boolean)
-declare sub var_T54_S7_L2_update_completed(value as boolean)
-
-declare T54_S7_L3 as boolean
-
-declare sub var_T54_S7_L3_update()
-declare sub var_T54_S7_L3_set(value as boolean)
-declare sub var_T54_S7_L3_update_completed(value as boolean)
-
-declare T54_S7_L4 as boolean
-
-declare sub var_T54_S7_L4_update()
-declare sub var_T54_S7_L4_set(value as boolean)
-declare sub var_T54_S7_L4_update_completed(value as boolean)
-
-declare T03_1_S5_L1 as boolean
-
-declare sub var_T03_1_S5_L1_update()
-declare sub var_T03_1_S5_L1_set(value as boolean)
-declare sub var_T03_1_S5_L1_update_completed(value as boolean)
-
-declare T03_1_S5_L2 as boolean
-
-declare sub var_T03_1_S5_L2_update()
-declare sub var_T03_1_S5_L2_set(value as boolean)
-declare sub var_T03_1_S5_L2_update_completed(value as boolean)
+declare sub var_IN8_update()
+declare sub var_IN8_set(value as boolean)
+declare sub var_IN8_update_completed(value as boolean)
 
 declare stg1 as string(80)
 
@@ -489,7 +445,6 @@ declare IN05 as string(80)
 declare IN06 as string(80)
 declare IN07 as string(80)
 declare IN08 as string(80)
-declare IN09 as string(80)
 
 declare OUT1 as string(40)
 declare OUT2 as string(40)

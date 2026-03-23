@@ -1,17 +1,13 @@
 include "global.tbh"
 
-'sock 11: tibbit 10
-'sock 9: tibbit 54 name T54_S9  — USCITE 1-4 (output)
-'sock 1: tibbit 03_1 name Relay1_2 — INGRESSI 1-2
-'sock 3: tibbit 03_1 name T03_1_S3 — INGRESSI 3-4
-'sock 7: tibbit 54 name T54_S7  — INGRESSI 7-9
-'sock 5: tibbit 03_1 name T03_1_S5 — INGRESSI 5-6
-'sock 2: tibbit 21
-'sock 4: tibbit 21
-'sock 6: tibbit 21
-'sock 8: tibbit 21
-'sock 10: tibbit 21
-'sock 12: tibbit 18
+'sock 1:  Tibbit #03.1 — OUT1, OUT2  (relay)
+'sock 3:  Tibbit #03.1 — OUT3, OUT4  (relay)
+'sock 5:  Tibbit #03.1 — OUT5, OUT6  (relay)
+'sock 7:  Tibbit #54   — IN1, IN2, IN3, IN4  (ingressi)
+'sock 9:  Tibbit #54   — IN5, IN6, IN7, IN8  (ingressi)
+'sock 11: Tibbit #10   (alimentazione)
+'sock 2,4,6,8,10: Tibbit #21
+'sock 12: Tibbit #18
 
 
 
@@ -54,29 +50,15 @@ dim var_poll_timer as dword
 dim TDoor_Master as float=0.0
 dim TCP_Port as float=0.0
 
-'T54_S9 = USCITE 1-4 (output direction — abilitato in boot.tbs)
-dim T54_S9_L1 as boolean=0
-dim T54_S9_L2 as boolean=0
-dim T54_S9_L3 as boolean=0
-dim T54_S9_L4 as boolean=0
-
-'T03_1_S1 = INGRESSI 1-2
-dim T03_1_S1_L1 as boolean=1
-dim T03_1_S1_L2 as boolean=1
-
-'T03_1_S3 = INGRESSI 3-4
-dim T03_1_S3_L1 as boolean=1
-dim T03_1_S3_L2 as boolean=1
-
-'T54_S7_L1-L3 = INGRESSI 7-9 (abilitati in boot.tbs)
-dim T54_S7_L1 as boolean=1
-dim T54_S7_L2 as boolean=1
-dim T54_S7_L3 as boolean=1
-dim T54_S7_L4 as boolean=1  'linea 4 di T54_S7: non usata per ingressi, spare
-
-'T03_1_S5 = INGRESSI 5-6
-dim T03_1_S5_L1 as boolean=1
-dim T03_1_S5_L2 as boolean=1
+'Ingressi fisici — Tibbit #54 su S7 (IN1-IN4) e S9 (IN5-IN8)
+dim IN1 as boolean=1
+dim IN2 as boolean=1
+dim IN3 as boolean=1
+dim IN4 as boolean=1
+dim IN5 as boolean=1
+dim IN6 as boolean=1
+dim IN7 as boolean=1
+dim IN8 as boolean=1
 
 dim stg1 as string(80)=""
 dim DN as string(8)=""
@@ -98,7 +80,6 @@ dim IN05 as string(80)=""
 dim IN06 as string(80)=""
 dim IN07 as string(80)=""
 dim IN08 as string(80)=""
-dim IN09 as string(80)=""
 dim OUT1 as string(40)=""
 dim OUT2 as string(40)=""
 dim OUT3 as string(40)=""
@@ -152,18 +133,15 @@ http_server_proc_timer()
     if sys_timercountms >= var_poll_timer then
         var_poll_timer = sys_timercountms + 1000
 
-        'Poll ingressi fisici (T03_1 — ingressi 1-6)
-            var_T03_1_S1_L1_update()
-            var_T03_1_S1_L2_update()
-            var_T03_1_S3_L1_update()
-            var_T03_1_S3_L2_update()
-            var_T03_1_S5_L1_update()
-            var_T03_1_S5_L2_update()
-
-        'Poll ingressi fisici (T54_S7_L1-L3 — ingressi 7-9)
-            var_T54_S7_L1_update()
-            var_T54_S7_L2_update()
-            var_T54_S7_L3_update()
+        'Poll ingressi fisici — Tibbit #54 su S7 (IN1-IN4) e S9 (IN5-IN8)
+            var_IN1_update()
+            var_IN2_update()
+            var_IN3_update()
+            var_IN4_update()
+            var_IN5_update()
+            var_IN6_update()
+            var_IN7_update()
+            var_IN8_update()
 
         'Valuta tutti gli ingressi e aggiorna le uscite
             evaluate_inputs()

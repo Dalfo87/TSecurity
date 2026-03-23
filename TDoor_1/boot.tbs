@@ -63,7 +63,6 @@ IN05=stg_get("IN05",0)
 IN06=stg_get("IN06",0)
 IN07=stg_get("IN07",0)
 IN08=stg_get("IN08",0)
-IN09=stg_get("IN09",0)
 OUT1=stg_get("OUT1",0)
 OUT2=stg_get("OUT2",0)
 OUT3=stg_get("OUT3",0)
@@ -238,63 +237,64 @@ APP_LOGGING="tbl_log"
     '-----------------------------------------------------------------
 	var_poll_timer = 1000
 
-    'Tibbit 54 su socket 9 — USCITE 1-4 (direzione OUTPUT, stato iniziale OFF)
-    io.num=T54_S9_L1_num
+    'Tibbit #03.1 su S1 — OUT1, OUT2 (relay output, stato iniziale LOW=relè aperto)
+    io.num=OUT_S1_L1_num
     io.enabled=YES
     io.state=LOW
 
-    io.num=T54_S9_L2_num
+    io.num=OUT_S1_L2_num
     io.enabled=YES
     io.state=LOW
 
-    io.num=T54_S9_L3_num
+    'Tibbit #03.1 su S3 — OUT3, OUT4
+    io.num=OUT_S3_L1_num
     io.enabled=YES
     io.state=LOW
 
-    io.num=T54_S9_L4_num
+    io.num=OUT_S3_L2_num
     io.enabled=YES
     io.state=LOW
 
-    'Tibbit 03_1 su socket 1 — INGRESSI 1-2
-    io.num=T03_1_S1_L1_num
+    'Tibbit #03.1 su S5 — OUT5, OUT6
+    io.num=OUT_S5_L1_num
+    io.enabled=YES
+    io.state=LOW
+
+    io.num=OUT_S5_L2_num
+    io.enabled=YES
+    io.state=LOW
+
+    'Tibbit #54 su S7 — IN1, IN2, IN3, IN4 (4 ingressi)
+    io.num=IN_S7_L1_num
     io.enabled=YES
     io.state=HIGH
 
-    io.num=T03_1_S1_L2_num
+    io.num=IN_S7_L2_num
     io.enabled=YES
     io.state=HIGH
 
-    'Tibbit 03_1 su socket 3 — INGRESSI 3-4
-    io.num=T03_1_S3_L1_num
+    io.num=IN_S7_L3_num
     io.enabled=YES
     io.state=HIGH
 
-    io.num=T03_1_S3_L2_num
+    io.num=IN_S7_L4_num
     io.enabled=YES
     io.state=HIGH
 
-    'Tibbit 54 su socket 7 — INGRESSI 7-9 (L1=ingr7, L2=ingr8, L3=ingr9, L4=spare)
-    io.num=T54_S7_L1_num
+    'Tibbit #54 su S9 — IN5, IN6, IN7, IN8 (4 ingressi)
+    io.num=IN_S9_L1_num
     io.enabled=YES
     io.state=HIGH
 
-    io.num=T54_S7_L2_num
+    io.num=IN_S9_L2_num
     io.enabled=YES
     io.state=HIGH
 
-    io.num=T54_S7_L3_num
+    io.num=IN_S9_L3_num
     io.enabled=YES
     io.state=HIGH
 
-    io.num=T54_S7_L4_num
-    io.enabled=NO  ' linea spare, non usata
-
-    'Tibbit 03_1 su socket 5 — INGRESSI 5-6
-    io.num=T03_1_S5_L1_num
-    io.enabled=YES
-    io.state=HIGH
-
-    io.num=T03_1_S5_L2_num
+    io.num=IN_S9_L4_num
     io.enabled=YES
     io.state=HIGH
 
