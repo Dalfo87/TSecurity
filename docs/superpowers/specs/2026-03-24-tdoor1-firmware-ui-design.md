@@ -191,14 +191,14 @@ Ritorna snapshot JSON completo dello stato I/O + eventi.
 | `in` | array[8] byte | Stato fisico ingressi (0=LOW/riposo, 1=HIGH/attivo) |
 | `out` | array[6] byte | Stato fisico uscite (0=OFF, 1=ON) |
 | `evst` | string[8] | Stato evento per ingresso (0–4, vedi §2.1) |
-| `ts` | integer | Uptime in secondi — fonte: `sys.timems \ 1000` |
+| `ts` | integer | Uptime in secondi — fonte: `sys.timercountms \ 1000` |
 
 **Costruzione JSON in Tibbo BASIC (esempio):**
 ```basic
 dim resp as string
 resp = "{""in"":[" + str(in_state(0)) + "," + str(in_state(1)) + ...
 resp = resp + "],""out"":[" + str(out_state(0)) + ...
-resp = resp + "],""evst"":""" + EVST + """,""ts"":" + str(sys.timems \ 1000) + "}"
+resp = resp + "],""evst"":""" + EVST + """,""ts"":" + str(sys.timercountms \ 1000) + "}"
 ```
 
 ### 3.3 Endpoint nuovo — `?e=io&action=set_event&idx=N&st=S`
@@ -387,5 +387,5 @@ Se uno o più ingressi sono in stato 1 o 2 → mostrare badge rosso/arancione co
 - EEPROM: `STG_MAX_NUM_SETTINGS` = 40 — 27 esistenti + 4 nuovi = **31 totali**
 - Cicli EEPROM: scrittura EVST solo su transizione stato (non a ogni poll)
 - JSON: nessuna libreria disponibile in Tibbo BASIC — costruzione manuale con concatenazione stringhe
-- Uptime: `sys.timems \ 1000` per campo `ts` nelle risposte API
+- Uptime: `sys.timercountms \ 1000` per campo `ts` nelle risposte API
 - Naming: evitare nomi che coincidono con keyword Tibbo BASIC (es. `ON` è già usato nel codebase come variabile owner name — non introdurre nuovi conflitti)
