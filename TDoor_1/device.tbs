@@ -1762,8 +1762,8 @@ function callback_http_server_endpoint_called(byref server as http_server_state)
             case "io": 'I/O stato in tempo reale
                 select case action
                 case "get":
-                    'Restituisce stato attuale di tutti gli ingressi e uscite
-                    'Formato: {"in":[0,1,0,0,0,1,0,0,0],"out":[0,0,0,0,0,0]}
+                    'Restituisce stato I/O + EVST + uptime
+                    'dim j already declared in this scope -- reuse it
                     dim j as byte
                     sock.setdata("{")
                     sock.setdata("\x22in\x22:[")
@@ -1781,7 +1781,8 @@ function callback_http_server_endpoint_called(byref server as http_server_state)
                         end if
                         if j < NUM_OUTPUTS - 1 then sock.setdata(",")
                     next j
-                    sock.setdata("]}")
+                    sock.setdata("],\x22evst\x22:\x22" + EVST + "\x22,")
+                    sock.setdata("\x22ts\x22:" + str(sys.timercountms \ 1000) + "}")
                     sock.send()
 
                 case "set_out":
