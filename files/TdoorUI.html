@@ -273,6 +273,17 @@
     }
     .db-cell-label{font-size:11px;color:#718096;text-transform:uppercase}
     .db-cell-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    /* ---------- IO card grid ---------- */
+    .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .card-grid-out { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+    .io-card { background: var(--clr-card); border-radius: 8px; padding: 12px; border: 1px solid var(--clr-border); }
+    .card-title { margin-bottom: 6px; font-size: 13px; }
+    .card-name { color: #a0aec0; }
+    .card-badges { margin-bottom: 8px; }
+    .card-actions { margin-top: 8px; }
+    .btn-warn { background: var(--clr-maintenance); color: #1a202c; }
+    .btn-warn:hover { opacity: 0.9; }
+    .field-note { font-size: 12px; color: #a0aec0; margin: 4px 0 10px; }
     /* ---------- Manutenzione grid ---------- */
     .maint-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
     .maint-card{
@@ -488,7 +499,7 @@ function esc(s) {
 }
 
 function fmtTs(d) {
-  var pad = function(n) { return String(n).padStart(2,'0'); };
+  var pad = function(n) { return ('0' + n).slice(-2); };
   return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) +
          ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
 }
@@ -610,6 +621,7 @@ function startPolling() {
 
 function handleIOData(d) {
   APP._lastEvst = d.evst || '00000000';
+  APP._lastIn = d.in || [0,0,0,0,0,0,0,0];
   updateStatusBar(d);
   var active = 0;
   for (var i = 0; i < 8; i++) {
@@ -651,41 +663,73 @@ function updateStatusBar(d) {
 /* ============================================================
    PAGE: Dashboard
    ============================================================ */
+function escHtml(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function renderDashboard(d) {
   var evst = (d && d.evst) ? d.evst : APP._lastEvst || '00000000';
+  var ins  = (d && d.in)   ? d.in   : APP._lastIn   || [0,0,0,0,0,0,0,0];
   var out  = (d && d.out)  ? d.out  : [];
   var html = '<div class="page-header"><div class="page-title">Dashboard</div><div class="page-sub">Stato in tempo reale</div></div>';
 
-  // Inputs grid
-  html += '<div class="card"><div class="card-header">Ingressi</div><div class="card-body">';
-  html += '<div class="db-grid">';
+  // Input cards
+  html += '<h3>Ingressi</h3><div class="card-grid">';
   for (var i = 0; i < 8; i++) {
     var ev = parseInt(evst.charAt(i)) || 0;
     if (ev > 4) ev = 4;
-    var name = (APP.inputs[i] && APP.inputs[i].nome) ? APP.inputs[i].nome : 'Ingresso ' + (i+1);
-    html += '<div class="db-cell">'
-          + '<div class="db-cell-label">IN' + (i+1) + '</div>'
-          + '<div class="db-cell-name" title="' + esc(name) + '">' + esc(name) + '</div>'
-          + '<span class="badge ' + EVST_CLASSES[ev] + '">' + EVST_LABELS[ev] + '</span>'
-          + '</div>';
+    var phys = ins[i];
+    var name = (APP.inputs[i] && APP.inputs[i].nome) || ('IN' + (i+1));
+    html += '<div class="io-card">';
+    html += '<div class="card-title"><strong>IN' + (i+1) + '</strong> <span class="card-name">' + escHtml(name) + '</span></div>';
+    html += '<div class="card-badges">';
+    html += '<span class="badge ' + (phys ? 'st-alarm' : 'st-ok') + '">' + (phys ? 'HIGH' : 'LOW') + '</span> ';
+    html += '<span class="badge ' + EVST_CLASSES[ev] + '">' + EVST_LABELS[ev] + '</span>';
+    html += '</div>';
+    // Action buttons
+    html += '<div class="card-actions">';
+    if (ev === 1) {
+      html += '<button class="btn btn-sm" onclick="dashAct(' + i + ',2)">Silenzia</button> ';
+    }
+    if (ev === 1 || ev === 2) {
+      html += '<button class="btn btn-sm" onclick="dashAct(' + i + ',0)">Ack</button> ';
+    }
+    if (ev !== 3 && ev !== 4) {
+      html += '<button class="btn btn-sm btn-warn" onclick="dashAct(' + i + ',3)">Manutenzione</button> ';
+    }
+    if (ev === 3 || ev === 4) {
+      html += '<button class="btn btn-sm" onclick="dashAct(' + i + ',0)">Riabilita</button>';
+    }
+    html += '</div></div>';
   }
-  html += '</div></div></div>';
+  html += '</div>';
 
-  // Outputs grid
-  html += '<div class="card"><div class="card-header">Uscite</div><div class="card-body">';
-  html += '<div class="db-grid">';
+  // Output cards
+  html += '<h3>Uscite</h3><div class="card-grid-out">';
   for (var j = 0; j < 6; j++) {
-    var outName = (APP.outputs[j] && APP.outputs[j].name) ? APP.outputs[j].name : 'Uscita ' + (j+1);
-    var isOn = !!(out[j]);
-    html += '<div class="db-cell">'
-          + '<div class="db-cell-label">OUT' + (j+1) + '</div>'
-          + '<div class="db-cell-name" title="' + esc(outName) + '">' + esc(outName) + '</div>'
-          + '<span class="badge ' + (isOn ? 'st-ok' : 'st-disabled') + '">' + (isOn ? 'ON' : 'OFF') + '</span>'
-          + '</div>';
+    var outOn = out[j];
+    var outName = (APP.outputs[j] && APP.outputs[j].name) || ('OUT' + (j+1));
+    html += '<div class="io-card">';
+    html += '<div class="card-title"><strong>OUT' + (j+1) + '</strong> <span class="card-name">' + escHtml(outName) + '</span></div>';
+    html += '<span class="badge ' + (outOn ? 'st-ok' : 'st-disabled') + '">' + (outOn ? 'ON' : 'OFF') + '</span>';
+    html += '</div>';
   }
-  html += '</div></div></div>';
+  html += '</div>';
 
   document.getElementById('p-dashboard').innerHTML = html;
+}
+
+function dashAct(idx, st) {
+  apiSetEvent(idx, st, function(ok, resp) {
+    if (!ok) { toast('Errore comando', true); return; }
+    if (resp && resp.ok === 0) {
+      toast('Ack non eseguito: ingresso ancora attivo', true);
+    } else {
+      toast('Comando eseguito');
+    }
+    // Immediate refresh
+    apiGetIO(function(d) { if (d) { handleIOData(d); } });
+  });
 }
 
 /* ============================================================
@@ -960,7 +1004,7 @@ function saveRete() {
    ============================================================ */
 function renderIntegrazioni() {
   var s = APP.settings;
-  var html = '<div class="page-header"><div class="page-title">Integrazioni</div><div class="page-sub">Milestone VMS e Xovis</div></div>';
+  var html = '<div class="page-header"><div class="page-title">Integrazioni</div><div class="page-sub">Milestone VMS, Xovis e TMaster</div></div>';
 
   // Milestone
   html += '<div class="card"><div class="card-header">Milestone VMS — Connessione server</div><div class="card-body">';
@@ -984,7 +1028,42 @@ function renderIntegrazioni() {
   html += '<div style="margin-top:16px"><button class="btn" onclick="saveXovis()">Salva</button></div>';
   html += '</div></div>';
 
+  // TMaster
+  html += '<div class="card"><div class="card-header">TMaster</div><div class="card-body">';
+  html += '<div class="form-row"><label>IP TMaster</label>';
+  html += '<input id="tm-ip" type="text" maxlength="16" placeholder="10.80.0.105" value="' + escHtml(s.TMIP || '') + '"></div>';
+  html += '<div class="form-row"><label>Porta</label>';
+  html += '<input id="tm-pt" type="text" maxlength="5" placeholder="6480" value="' + escHtml(s.TMPT || '6480') + '"></div>';
+  html += '<div class="form-row"><label>Chiave cifratura</label>';
+  html += '<input id="tm-ky" type="text" maxlength="32" placeholder="(vuoto)" value="' + escHtml(s.TMKY || '') + '"></div>';
+  html += '<p class="field-note">La chiave di cifratura è riservata per uso futuro — non attiva in questa versione.</p>';
+  html += '<div style="margin-top:8px"><button class="btn" onclick="saveTMaster()">Salva TMaster</button></div>';
+  html += '</div></div>';
+
   document.getElementById('p-integrazioni').innerHTML = html;
+}
+
+function saveTMaster() {
+  var fields = [
+    { id: 'tm-ip', key: 'TMIP' },
+    { id: 'tm-pt', key: 'TMPT' },
+    { id: 'tm-ky', key: 'TMKY' }
+  ];
+  var done = 0;
+  var lastOk = true;
+  fields.forEach(function(f) {
+    var val = document.getElementById(f.id);
+    if (!val) { done++; return; }
+    var v = val.value;
+    apiSet(f.key, v, function(ok) {
+      done++;
+      if (!ok) lastOk = false;
+      if (done === fields.length) {
+        toast(lastOk ? 'TMaster salvato' : 'Errore salvataggio TMaster', !lastOk);
+      }
+      APP.settings[f.key] = v;
+    });
+  });
 }
 
 function saveMilestone() {
@@ -1053,14 +1132,14 @@ function renderManutenzione(evst) {
     if (ev === 1) { // alarm -> silence
       html += '<button class="btn btn-sm btn-secondary" onclick="setEvst(' + i + ',2)">Silenzia</button>';
     }
-    if (ev === 1 || ev === 2) { // alarm/silenced -> maintenance
+    if (ev !== 3 && ev !== 4) { // any state except maint/disabled -> maintenance
       html += '<button class="btn btn-sm" onclick="setEvst(' + i + ',3)">Manutenzione</button>';
     }
     if (ev === 3 || ev === 4) { // maint/disabled -> ok
-      html += '<button class="btn btn-sm btn-ok" onclick="setEvst(' + i + ',0)">Ripristina</button>';
+      html += '<button class="btn btn-sm btn-ok" onclick="setEvst(' + i + ',0)">Riabilita</button>';
     }
     if (ev !== 4) {
-      html += '<button class="btn btn-sm btn-danger" onclick="setEvst(' + i + ',4)">Disabilita</button>';
+      html += '<button class="btn btn-sm btn-danger" onclick="disabilitaIngresso(' + i + ')">Disabilita</button>';
     }
     html += '</td></tr>';
   }
@@ -1138,6 +1217,16 @@ function setEvst(idx, st) {
     if (d && d.evst) APP._lastEvst = d.evst;
     renderManutenzione(APP._lastEvst);
     toast('Stato ingresso ' + (idx+1) + ' aggiornato');
+  });
+}
+
+function disabilitaIngresso(idx) {
+  showConfirm('Disabilitare ingresso IN' + (idx+1) + '? Questa operazione richiede il ruolo amministratore.', function(ok) {
+    if (!ok) return;
+    apiSetEvent(idx, 4, function(done) {
+      toast(done ? 'Ingresso disabilitato' : 'Errore', !done);
+      apiGetIO(function(d) { if (d) handleIOData(d); });
+    });
   });
 }
 
