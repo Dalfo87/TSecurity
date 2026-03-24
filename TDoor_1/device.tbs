@@ -1817,6 +1817,95 @@ function callback_http_server_endpoint_called(byref server as http_server_state)
                     end if
                     sock.send()
 
+                case "set_event":
+                    dim se_idx as byte
+                    dim se_st as byte
+                    dim se_resp as string
+                    dim se_lo as byte
+                    dim se_raw as boolean
+                    dim se_cfg as string
+                    dim se_tipo as string
+                    dim se_lock as string
+                    dim se_active as boolean
+                    dim se_cur as byte
+
+                    se_idx = val(http_server_find_param(params, "idx"))
+                    se_st = val(http_server_find_param(params, "st"))
+
+                    if se_idx > NUM_INPUTS - 1 then
+                        se_resp = "{\x22ok\x22:0,\x22msg\x22:\x22idx fuori range\x22}"
+                        goto se_send
+                    end if
+
+                    se_cur = val(mid(EVST, se_idx + 1, 1))
+
+                    select case se_st
+                    case 2:
+                        mid(EVST, se_idx + 1, 1) = "2"
+                        stg_set("EVST", 0, EVST)
+                        log_event("SILENZIATO ingresso " + str(se_idx + 1))
+                        se_resp = "{\x22ok\x22:1,\x22evst_idx\x22:2}"
+
+                    case 0:
+                        if se_cur = 3 or se_cur = 4 then
+                            mid(EVST, se_idx + 1, 1) = "0"
+                            stg_set("EVST", 0, EVST)
+                            log_event("RIPRISTINATO ingresso " + str(se_idx + 1))
+                            se_resp = "{\x22ok\x22:1,\x22evst_idx\x22:0}"
+                            goto se_send
+                        end if
+
+                        se_raw = get_input_state_raw(se_idx)
+                        se_cfg = get_input_config(se_idx)
+                        se_tipo = get_csv_field(se_cfg, 1)
+                        se_lock = get_csv_field(se_cfg, 6)
+
+                        if se_tipo = "NC" then
+                            se_active = se_raw
+                        else
+                            se_active = not se_raw
+                        end if
+
+                        if se_active = false or se_lock = "N" or se_lock = "" then
+                            mid(EVST, se_idx + 1, 1) = "0"
+                            se_lo = get_linked_output(se_idx)
+                            if se_lo > 0 then set_output(se_lo - 1, false)
+                            stg_set("EVST", 0, EVST)
+                            log_event("CHIUSO ingresso " + str(se_idx + 1))
+                            se_resp = "{\x22ok\x22:1,\x22evst_idx\x22:0}"
+                        else
+                            mid(EVST, se_idx + 1, 1) = "1"
+                            se_lo = get_linked_output(se_idx)
+                            if se_lo > 0 then set_output(se_lo - 1, true)
+                            stg_set("EVST", 0, EVST)
+                            log_event("ACK RESPINTO ingresso " + str(se_idx + 1))
+                            se_resp = "{\x22ok\x22:0,\x22evst_idx\x22:1,\x22msg\x22:\x22input attivo\x22}"
+                        end if
+
+                    case 3:
+                        mid(EVST, se_idx + 1, 1) = "3"
+                        se_lo = get_linked_output(se_idx)
+                        if se_lo > 0 then set_output(se_lo - 1, false)
+                        stg_set("EVST", 0, EVST)
+                        log_event("MANUTENZIONE ingresso " + str(se_idx + 1))
+                        se_resp = "{\x22ok\x22:1,\x22evst_idx\x22:3}"
+
+                    case 4:
+                        mid(EVST, se_idx + 1, 1) = "4"
+                        se_lo = get_linked_output(se_idx)
+                        if se_lo > 0 then set_output(se_lo - 1, false)
+                        stg_set("EVST", 0, EVST)
+                        log_event("DISABILITATO ingresso " + str(se_idx + 1))
+                        se_resp = "{\x22ok\x22:1,\x22evst_idx\x22:4}"
+
+                    case else
+                        se_resp = "{\x22ok\x22:0,\x22msg\x22:\x22st non valido\x22}"
+                    end select
+
+                    se_send:
+                    sock.setdata(se_resp)
+                    sock.send()
+
                 case else:
                     sock.setdata("{\x22error\x22:\x22action non supportata\x22}")
                     sock.send()
