@@ -95,6 +95,10 @@ dim XVCM as string(32)="LineCrossing"
 dim XVDI as string(10)="forward"
 dim NTPIP as string(20)="192.168.0.3"
 dim APTP as string(20)="AllFunction"
+dim EVST as string(8)=""
+dim TMIP as string(16)=""
+dim TMPT as string(5)=""
+dim TMKY as string(32)=""
 
 '---- Stato runtime I/O (RAM) --------------------------------------------
 dim in_state(NUM_INPUTS) as byte   ' stato ingressi: 0=chiuso, 1=aperto, 2=allarme

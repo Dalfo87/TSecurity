@@ -87,6 +87,10 @@ sub callback_stg_post_set(byref stg_name_or_num as string, index as byte,byref s
         SNTP_SERVER=NTPIP
     end if
     if stg_name_or_num="APTP" then APTP=stg_value
+    if stg_name_or_num="EVST" then EVST=stg_value
+    if stg_name_or_num="TMIP" then TMIP=stg_value
+    if stg_name_or_num="TMPT" then TMPT=stg_value
+    if stg_name_or_num="TMKY" then TMKY=stg_value
 end sub
         
 
