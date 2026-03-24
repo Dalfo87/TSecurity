@@ -560,10 +560,19 @@ function showPage(id) {
    Login / Logout
    ============================================================ */
 function doLogin() {
+  if (APP._loggingIn) return;
+  APP._loggingIn = true;
   var pw = document.getElementById('pw-input').value;
   apiCall({ e: 'a', action: 'get', password: pw }, function(err, data) {
+    APP._loggingIn = false;
     if (err) {
-      toast('Errore di connessione', true);
+      toast('Errore di connessione: ' + err, true);
+      return;
+    }
+    // Firmware returns "0" for auth success
+    var trimmed = (data || '').replace(/\s/g, '');
+    if (trimmed !== '0' && trimmed !== '"0"') {
+      toast('Password errata', true);
       return;
     }
     APP.password = pw;
@@ -595,10 +604,19 @@ function doLogin() {
 }
 
 function doLogout() {
-  APP.password = '';
   clearInterval(APP._pollInterval);
+  APP._pollInterval = null;
+  APP.password = '';
+  APP.settings = {};
+  APP.inputs = [];
+  APP.outputs = [];
+  APP._lastEvst = '00000000';
+  APP._lastIn = [0,0,0,0,0,0,0,0];
+  APP._loggingIn = false;
+  // Hide app, show login
   document.getElementById('app').style.display = 'none';
-  document.getElementById('status-bar').style.display = 'none';
+  var sb = document.getElementById('status-bar');
+  if (sb) sb.style.display = 'none';
   document.getElementById('login-overlay').style.display = 'flex';
   document.getElementById('pw-input').value = '';
 }
@@ -607,6 +625,8 @@ function doLogout() {
    Polling
    ============================================================ */
 function startPolling() {
+  if (APP._pollInterval) clearInterval(APP._pollInterval);
+  APP._pollInterval = null;
   // immediate first fetch
   apiGetIO(function(d) {
     if (d) handleIOData(d);
@@ -663,10 +683,6 @@ function updateStatusBar(d) {
 /* ============================================================
    PAGE: Dashboard
    ============================================================ */
-function escHtml(s) {
-  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
 function renderDashboard(d) {
   var evst = (d && d.evst) ? d.evst : APP._lastEvst || '00000000';
   var ins  = (d && d.in)   ? d.in   : APP._lastIn   || [0,0,0,0,0,0,0,0];
@@ -681,7 +697,7 @@ function renderDashboard(d) {
     var phys = ins[i];
     var name = (APP.inputs[i] && APP.inputs[i].nome) || ('IN' + (i+1));
     html += '<div class="io-card">';
-    html += '<div class="card-title"><strong>IN' + (i+1) + '</strong> <span class="card-name">' + escHtml(name) + '</span></div>';
+    html += '<div class="card-title"><strong>IN' + (i+1) + '</strong> <span class="card-name">' + esc(name) + '</span></div>';
     html += '<div class="card-badges">';
     html += '<span class="badge ' + (phys ? 'st-alarm' : 'st-ok') + '">' + (phys ? 'HIGH' : 'LOW') + '</span> ';
     html += '<span class="badge ' + EVST_CLASSES[ev] + '">' + EVST_LABELS[ev] + '</span>';
@@ -710,7 +726,7 @@ function renderDashboard(d) {
     var outOn = out[j];
     var outName = (APP.outputs[j] && APP.outputs[j].name) || ('OUT' + (j+1));
     html += '<div class="io-card">';
-    html += '<div class="card-title"><strong>OUT' + (j+1) + '</strong> <span class="card-name">' + escHtml(outName) + '</span></div>';
+    html += '<div class="card-title"><strong>OUT' + (j+1) + '</strong> <span class="card-name">' + esc(outName) + '</span></div>';
     html += '<span class="badge ' + (outOn ? 'st-ok' : 'st-disabled') + '">' + (outOn ? 'ON' : 'OFF') + '</span>';
     html += '</div>';
   }
@@ -914,8 +930,14 @@ function ctrlOut(j, val) {
 }
 
 function pulseOut(j) {
+  if (APP._pulsing && APP._pulsing[j]) return;
+  if (!APP._pulsing) APP._pulsing = {};
+  APP._pulsing[j] = true;
   ctrlOut(j, 1);
-  setTimeout(function() { ctrlOut(j, 0); }, 2000);
+  setTimeout(function() {
+    ctrlOut(j, 0);
+    APP._pulsing[j] = false;
+  }, 2000);
 }
 
 /* ============================================================
@@ -1031,11 +1053,11 @@ function renderIntegrazioni() {
   // TMaster
   html += '<div class="card"><div class="card-header">TMaster</div><div class="card-body">';
   html += '<div class="form-row"><label>IP TMaster</label>';
-  html += '<input id="tm-ip" type="text" maxlength="16" placeholder="10.80.0.105" value="' + escHtml(s.TMIP || '') + '"></div>';
+  html += '<input id="tm-ip" type="text" maxlength="16" placeholder="10.80.0.105" value="' + esc(s.TMIP || '') + '"></div>';
   html += '<div class="form-row"><label>Porta</label>';
-  html += '<input id="tm-pt" type="text" maxlength="5" placeholder="6480" value="' + escHtml(s.TMPT || '6480') + '"></div>';
+  html += '<input id="tm-pt" type="text" maxlength="5" placeholder="6480" value="' + esc(s.TMPT || '6480') + '"></div>';
   html += '<div class="form-row"><label>Chiave cifratura</label>';
-  html += '<input id="tm-ky" type="text" maxlength="32" placeholder="(vuoto)" value="' + escHtml(s.TMKY || '') + '"></div>';
+  html += '<input id="tm-ky" type="text" maxlength="32" placeholder="(vuoto)" value="' + esc(s.TMKY || '') + '"></div>';
   html += '<p class="field-note">La chiave di cifratura è riservata per uso futuro — non attiva in questa versione.</p>';
   html += '<div style="margin-top:8px"><button class="btn" onclick="saveTMaster()">Salva TMaster</button></div>';
   html += '</div></div>';
@@ -1225,7 +1247,16 @@ function disabilitaIngresso(idx) {
     if (!ok) return;
     apiSetEvent(idx, 4, function(done) {
       toast(done ? 'Ingresso disabilitato' : 'Errore', !done);
-      apiGetIO(function(d) { if (d) handleIOData(d); });
+      if (done) {
+        // Update local state immediately without waiting for poll
+        var evst = APP._lastEvst ? APP._lastEvst.split('') : '00000000'.split('');
+        evst[idx] = '4';
+        APP._lastEvst = evst.join('');
+        if (APP.currentPage === 'p-manutenzione') renderManutenzione(APP._lastEvst);
+        if (APP.currentPage === 'p-dashboard') {
+          apiGetIO(function(d) { if (d) handleIOData(d); });
+        }
+      }
     });
   });
 }
