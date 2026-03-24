@@ -94,6 +94,33 @@ end function
 
 
 '--------------------------------------------------------------------------
+' get_linked_output
+' Ritorna il numero di uscita collegata all ingresso idx (0-based)
+' Ritorna 0 se nessuna uscita collegata, 1-6 per OUT1..OUT6
+'--------------------------------------------------------------------------
+function get_linked_output(idx as byte) as byte
+    'Ritorna il numero di uscita collegata all ingresso idx (0-based)
+    'Ritorna 0 se nessuna uscita collegata, 1-6 per OUT1..OUT6
+    dim cfg as string
+    dim lo_str as string
+    dim lo_val as byte
+    cfg = get_input_config(idx)
+    if cfg = "" then
+        get_linked_output = 0
+        exit function
+    end if
+    lo_str = get_csv_field(cfg, 4)
+    if lo_str = "" then
+        get_linked_output = 0
+        exit function
+    end if
+    lo_val = val(lo_str)
+    if lo_val > NUM_OUTPUTS then lo_val = 0
+    get_linked_output = lo_val
+end function
+
+
+'--------------------------------------------------------------------------
 ' set_output
 ' Imposta l'uscita idx (0-based) allo stato richiesto.
 ' Se state=false e l'uscita e' bloccata (lockOnActive=Y su un ingresso
