@@ -30,6 +30,10 @@
 >>XVDI	E	S	1	0	10	A	forward	Xovis Direzione
 >>NTPIP	E	S	1	0	20	A	192.168.0.3	NTP Server IP
 >>APTP	E	S	1	0	20	A	AllFunction	Tipo Applicazione
+>>EVST	E	S	1	0	8	A	00000000	Stato eventi ingressi
+>>TMIP	E	S	1	0	16	A	^	TMaster IP
+>>TMPT	E	S	1	0	5	A	6480	TMaster Porta
+>>TMKY	E	S	1	0	32	A	^	TMaster Chiave Cifratura
 #define STG_DESCRIPTOR_FILE "settings.xtxt"
 #define STG_DEBUG_PRINT 0
 #define STG_MAX_NUM_SETTINGS 40

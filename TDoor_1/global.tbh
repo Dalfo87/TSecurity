@@ -462,6 +462,11 @@ declare XVCM as string(32)
 declare XVDI as string(10)
 declare NTPIP as string(20)
 declare APTP as string(20)
+'--- EVST + TMaster settings (v1.2) ---
+declare EVST as string(8)
+declare TMIP as string(16)
+declare TMPT as string(5)
+declare TMKY as string(32)
 
 '---- Stato runtime I/O (RAM, mai EEPROM) --------------------------------
 
@@ -480,6 +485,9 @@ declare function get_csv_field(byref csv as string, field_idx as byte) as string
 declare sub evaluate_inputs()
 declare sub set_output(idx as byte, state as boolean)
 declare sub log_event(byref msg as string)
+declare function get_linked_output(idx as byte) as byte
+'ritorna 0 se nessuna uscita collegata, 1-6 per OUT1..OUT6
+'legge campo linkOutput (campo 4) dal CSV dell'ingresso idx
 
 '-------------------------------------------------------------------------
 
