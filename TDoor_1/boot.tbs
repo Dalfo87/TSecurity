@@ -78,6 +78,12 @@ XVCM=stg_get("XVCM",0)
 XVDI=stg_get("XVDI",0)
 NTPIP=stg_get("NTPIP",0)
 APTP=stg_get("APTP",0)
+    'TMaster + EVST (v1.2)
+    EVST = stg_get("EVST", 0)
+    if len(EVST) < 8 then EVST = "00000000"   'protezione stringa corrotta
+    TMIP = stg_get("TMIP", 0)
+    TMPT = stg_get("TMPT", 0)
+    TMKY = stg_get("TMKY", 0)
     '-----------------------------------------------------------------
 
     'Fd(flash disk) setup
@@ -298,12 +304,25 @@ APP_LOGGING="tbl_log"
     io.enabled=YES
     io.state=HIGH
 
-    'Inizializza stato uscite a OFF (safe state al boot)
+    'Ripristino uscite da EVST (stati 1 o 2 = output ON)
     dim oi as byte
     for oi = 0 to NUM_OUTPUTS - 1
         out_state(oi) = false
         pulse_end_ms(oi) = 0
     next oi
+
+    dim ei as byte
+    dim evst_char as byte
+    dim linked as byte
+    for ei = 0 to NUM_INPUTS - 1
+        evst_char = val(mid(EVST, ei + 1, 1))
+        linked = get_linked_output(ei)
+        if linked > 0 then
+            if evst_char = 1 or evst_char = 2 then
+                set_output(linked - 1, true)
+            end if
+        end if
+    next ei
 
     'Sock S1 connection setup
     '================================================================
