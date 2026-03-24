@@ -195,50 +195,55 @@ end sub
 '--------------------------------------------------------------------------
 sub evaluate_inputs()
     dim i as byte
+    dim cfg as string
+    dim tipo as string
+    dim is_active as boolean
+    dim raw as boolean
+    dim lo as byte
+    dim evst_char as byte
+
     for i = 0 to NUM_INPUTS - 1
-        dim cfg as string = get_input_config(i)
-        if len(cfg) = 0 then
-            ' Ingresso non configurato — salta
-            in_state(i) = 0
+        evst_char = val(mid(EVST, i + 1, 1))
+
+        if evst_char = 3 or evst_char = 4 then
+            goto next_input
+        end if
+
+        cfg = get_input_config(i)
+        if cfg = "" then goto next_input
+
+        tipo = get_csv_field(cfg, 1)
+        raw = get_input_state_raw(i)
+
+        if tipo = "NC" then
+            is_active = raw
         else
-            dim tipo as string = get_csv_field(cfg, 1)
-            dim raw_state as boolean = get_input_state_raw(i)
-            dim is_active as boolean
+            is_active = not raw
+        end if
 
-            if tipo = "NC" then
-                is_active = raw_state          ' HIGH=aperto=anomalia
-            else  ' NO
-                is_active = (raw_state = false) ' LOW=chiuso=evento
-            end if
+        if is_active then
+            in_state(i) = 1
+        else
+            in_state(i) = 0
+        end if
 
-            ' Aggiorna in_state con log sulle transizioni
+        if evst_char = 1 or evst_char = 2 then
+            goto next_input
+        end if
+
+        if evst_char = 0 then
             if is_active then
-                if in_state(i) = 0 then
-                    log_event("IN" + str(i+1) + " ATTIVO: " + get_csv_field(cfg, 0))
+                mid(EVST, i + 1, 1) = "1"
+                lo = get_linked_output(i)
+                if lo > 0 then
+                    set_output(lo - 1, true)
                 end if
-                in_state(i) = 1
-            else
-                if in_state(i) > 0 then
-                    log_event("IN" + str(i+1) + " NORMALE: " + get_csv_field(cfg, 0))
-                end if
-                in_state(i) = 0
-            end if
-
-            ' Pilota l'uscita associata (se configurata)
-            dim linked_out as byte = val(get_csv_field(cfg, 4))  ' 0=nessuna, 1-6=uscita
-            if linked_out > 0 AND linked_out <= NUM_OUTPUTS then
-                dim out_idx as byte = linked_out - 1
-                if is_active then
-                    if out_state(out_idx) = false then
-                        set_output(out_idx, true)
-                    end if
-                else
-                    if out_state(out_idx) = true then
-                        set_output(out_idx, false)
-                    end if
-                end if
+                log_event("ALLARME ingresso " + str(i + 1))
+                stg_set("EVST", 0, EVST)
             end if
         end if
+
+        next_input:
     next i
 end sub
 
