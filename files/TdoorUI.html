@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TDoor Config</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --clr-alarm:#e53e3e;
+      --clr-silenced:#dd6b20;
+      --clr-maintenance:#d69e2e;
+      --clr-disabled:#718096;
+      --clr-ok:#38a169;
+      --clr-bg:#1a202c;
+      --clr-sidebar:#2d3748;
+      --clr-card:#2d3748;
+      --clr-text:#e2e8f0;
+      --clr-border:#4a5568;
+      --clr-btn:#3182ce;
+      --clr-btn-hover:#2b6cb0;
+    }
+    html,body{height:100%}
+    body{
+      font-family:'Segoe UI',Trebuchet MS,sans-serif;
+      background:var(--clr-bg);
+      color:var(--clr-text);
+      display:flex;
+      flex-direction:column;
+      min-height:100vh;
+      font-size:14px;
+    }
+    /* ---------- Login ---------- */
+    #login-overlay{
+      position:fixed;inset:0;
+      display:flex;
+      align-items:center;justify-content:center;
+      background:rgba(10,13,20,0.97);
+      z-index:1000;
+    }
+    #login-box{
+      background:var(--clr-card);
+      border:1px solid var(--clr-border);
+      border-top:3px solid var(--clr-btn);
+      padding:40px 48px;
+      width:340px;
+      border-radius:6px;
+    }
+    #login-box h2{margin-bottom:6px;font-size:20px}
+    #login-box p{color:#a0aec0;font-size:13px;margin-bottom:24px}
+    #login-box input{
+      display:block;width:100%;margin-bottom:14px;
+      background:#171923;
+      border:1px solid var(--clr-border);
+      color:var(--clr-text);
+      padding:9px 12px;
+      border-radius:4px;
+      font-size:14px;
+    }
+    #login-box input:focus{outline:none;border-color:var(--clr-btn)}
+    /* ---------- App layout ---------- */
+    #app{
+      flex:1;
+      display:flex;
+      flex-direction:row;
+      overflow:hidden;
+    }
+    #sidebar{
+      width:220px;
+      background:var(--clr-sidebar);
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      flex-shrink:0;
+      overflow-y:auto;
+    }
+    #logo{
+      font-size:15px;
+      font-weight:700;
+      color:var(--clr-text);
+      padding:4px 4px 18px;
+      border-bottom:1px solid var(--clr-border);
+      margin-bottom:12px;
+    }
+    .nav-item{
+      display:block;
+      padding:10px 12px;
+      border-radius:6px;
+      cursor:pointer;
+      color:var(--clr-text);
+      margin-bottom:4px;
+      font-size:13px;
+      user-select:none;
+    }
+    .nav-item:hover,.nav-item.active{background:rgba(255,255,255,0.1)}
+    .nav-spacer{flex:1}
+    #content{
+      flex:1;
+      overflow-y:auto;
+      padding:24px;
+    }
+    .page{display:none}
+    .page.active{display:block}
+    /* ---------- Status bar ---------- */
+    #status-bar{
+      height:40px;
+      background:#171923;
+      padding:0 16px;
+      display:none;
+      flex-direction:row;
+      align-items:center;
+      font-size:12px;
+      flex-shrink:0;
+      gap:4px;
+      border-top:1px solid var(--clr-border);
+    }
+    /* ---------- Toast ---------- */
+    #toast{
+      position:fixed;
+      bottom:56px;right:20px;
+      padding:12px 20px;
+      border-radius:6px;
+      display:none;
+      z-index:9999;
+      font-size:13px;
+      font-weight:600;
+      max-width:320px;
+    }
+    /* ---------- Confirm modal ---------- */
+    #confirm-modal{
+      position:fixed;inset:0;
+      display:none;
+      z-index:9998;
+      background:rgba(0,0,0,0.7);
+      align-items:center;justify-content:center;
+    }
+    #confirm-box{
+      background:var(--clr-card);
+      border:1px solid var(--clr-border);
+      border-radius:6px;
+      padding:28px 32px;
+      min-width:320px;
+      max-width:440px;
+    }
+    #confirm-msg{margin-bottom:20px;line-height:1.5;font-size:14px}
+    #confirm-box .btn-row{display:flex;gap:10px;justify-content:flex-end}
+    /* ---------- Common UI ---------- */
+    .btn{
+      padding:6px 14px;
+      border-radius:4px;
+      cursor:pointer;
+      background:var(--clr-btn);
+      color:#fff;
+      border:none;
+      font-size:13px;
+      font-weight:600;
+    }
+    .btn:hover{background:var(--clr-btn-hover)}
+    .btn-sm{padding:4px 10px;font-size:12px}
+    .btn-danger{background:#742a2a;color:#fed7d7}
+    .btn-danger:hover{background:#9b2c2c}
+    .btn-secondary{background:#4a5568;color:var(--clr-text)}
+    .btn-secondary:hover{background:#2d3748}
+    .btn-ok{background:#276749;color:#c6f6d5}
+    .btn-ok:hover{background:#22543d}
+    input,select,textarea{
+      background:var(--clr-card);
+      color:var(--clr-text);
+      border:1px solid var(--clr-border);
+      border-radius:4px;
+      padding:6px 10px;
+      font-size:13px;
+      font-family:inherit;
+    }
+    input:focus,select:focus,textarea:focus{
+      outline:none;
+      border-color:var(--clr-btn);
+    }
+    select option{background:#2d3748}
+    /* ---------- Badges & LEDs ---------- */
+    .badge{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:4px;
+      font-size:11px;
+      font-weight:700;
+    }
+    .st-ok{background:var(--clr-ok);color:#fff}
+    .st-alarm{background:var(--clr-alarm);color:#fff;animation:blink 1s step-start infinite}
+    .st-silenced{background:var(--clr-silenced);color:#fff}
+    .st-maintenance{background:var(--clr-maintenance);color:#1a202c}
+    .st-disabled{background:var(--clr-disabled);color:#fff}
+    @keyframes blink{50%{opacity:0.3}}
+    .led{
+      display:inline-block;
+      width:12px;height:12px;
+      border-radius:50%;
+      margin:0 2px;
+    }
+    /* ---------- Cards ---------- */
+    .card{
+      background:var(--clr-card);
+      border:1px solid var(--clr-border);
+      border-radius:6px;
+      margin-bottom:20px;
+      overflow:hidden;
+    }
+    .card-header{
+      padding:10px 16px;
+      font-size:12px;
+      font-weight:700;
+      text-transform:uppercase;
+      color:#a0aec0;
+      border-bottom:1px solid var(--clr-border);
+      background:rgba(0,0,0,0.2);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .card-body{padding:18px}
+    /* ---------- Form rows ---------- */
+    .form-row{
+      display:grid;
+      grid-template-columns:200px 1fr;
+      gap:12px;
+      align-items:center;
+      padding:9px 0;
+      border-bottom:1px solid rgba(74,85,104,0.4);
+    }
+    .form-row:last-child{border-bottom:none}
+    .form-row label{font-size:12px;color:#a0aec0}
+    .form-row input,.form-row select,.form-row textarea{width:100%}
+    .form-note{font-size:11px;color:#718096;margin-top:3px}
+    /* ---------- Tables ---------- */
+    .data-table{width:100%;border-collapse:collapse;font-size:13px}
+    .data-table th{
+      text-align:left;
+      font-size:11px;
+      text-transform:uppercase;
+      color:#718096;
+      padding:8px 12px;
+      border-bottom:1px solid var(--clr-border);
+    }
+    .data-table td{
+      padding:9px 12px;
+      border-bottom:1px solid rgba(74,85,104,0.4);
+      vertical-align:middle;
+    }
+    .data-table tr:last-child td{border-bottom:none}
+    .data-table tr:hover td{background:rgba(255,255,255,0.03)}
+    .mono{font-family:'Courier New',monospace;font-size:12px}
+    /* ---------- Page headers ---------- */
+    .page-header{
+      display:flex;
+      align-items:baseline;
+      gap:14px;
+      margin-bottom:22px;
+      padding-bottom:14px;
+      border-bottom:1px solid var(--clr-border);
+    }
+    .page-title{font-size:20px;font-weight:700}
+    .page-sub{font-size:12px;color:#718096}
+    /* ---------- Dashboard grid ---------- */
+    .db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+    .db-cell{
+      background:var(--clr-card);
+      border:1px solid var(--clr-border);
+      border-radius:6px;
+      padding:14px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .db-cell-label{font-size:11px;color:#718096;text-transform:uppercase}
+    .db-cell-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    /* ---------- Manutenzione grid ---------- */
+    .maint-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+    .maint-card{
+      background:var(--clr-card);
+      border:1px solid var(--clr-border);
+      border-radius:6px;
+      padding:20px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .maint-title{font-size:13px;font-weight:700}
+    /* ---------- Info strip ---------- */
+    .info-strip{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      font-size:12px;
+      color:#718096;
+      padding:10px 16px;
+      background:rgba(0,0,0,0.25);
+      border:1px solid var(--clr-border);
+      border-radius:4px;
+      margin-bottom:18px;
+      flex-wrap:wrap;
+    }
+    .info-strip span{color:var(--clr-text)}
+    /* ---------- Log ---------- */
+    .log-ts{color:#718096}
+    .log-ok{color:var(--clr-ok)}
+    .log-alarm{color:var(--clr-alarm)}
+    .log-silenced{color:var(--clr-silenced)}
+    .log-maint{color:var(--clr-maintenance)}
+    .log-info{color:#63b3ed}
+    /* ---------- Hidden util ---------- */
+    .hidden{display:none!important}
+    /* ---------- Overflow tables ---------- */
+    .table-wrap{overflow-x:auto}
+    #inputs-table td,#inputs-table th{white-space:nowrap}
+  </style>
+</head>
+<body>
+
+<!-- Login overlay -->
+<div id="login-overlay">
+  <div id="login-box">
+    <h2>TDoor Config</h2>
+    <p>Inserire la password del dispositivo</p>
+    <input type="password" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn" onclick="doLogin()">Accedi</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Confirm modal -->
+<div id="confirm-modal">
+  <div id="confirm-box">
+    <p id="confirm-msg"></p>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="confirm-cancel">Annulla</button>
+      <button class="btn" id="confirm-ok">Conferma</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main app -->
+<div id="app">
+  <nav id="sidebar">
+    <div id="logo">TDoor Config</div>
+    <div class="nav-item active" id="nav-dashboard" onclick="showPage('p-dashboard')">
+      Dashboard
+      <span id="nav-badge" class="badge st-alarm hidden">0</span>
+    </div>
+    <div class="nav-item" id="nav-ingressi" onclick="showPage('p-ingressi')">Ingressi</div>
+    <div class="nav-item" id="nav-uscite" onclick="showPage('p-uscite')">Uscite</div>
+    <div class="nav-item" id="nav-rete" onclick="showPage('p-rete')">Rete</div>
+    <div class="nav-item" id="nav-integrazioni" onclick="showPage('p-integrazioni')">Integrazioni</div>
+    <div class="nav-item" id="nav-manutenzione" onclick="showPage('p-manutenzione')">Manutenzione</div>
+    <div class="nav-item" id="nav-log" onclick="showPage('p-log')">Log eventi</div>
+    <div class="nav-spacer"></div>
+    <div class="nav-item" onclick="doLogout()">Logout</div>
+  </nav>
+
+  <main id="content">
+    <div id="p-dashboard" class="page active"></div>
+    <div id="p-ingressi" class="page"></div>
+    <div id="p-uscite" class="page"></div>
+    <div id="p-rete" class="page"></div>
+    <div id="p-integrazioni" class="page"></div>
+    <div id="p-manutenzione" class="page"></div>
+    <div id="p-log" class="page"></div>
+  </main>
+</div>
+
+<!-- Status bar -->
+<div id="status-bar"></div>
+
+<script>
+/* ============================================================
+   APP state
+   ============================================================ */
+var APP = {
+  password: '',
+  baseUrl: window.location.origin,
+  currentPage: 'p-dashboard',
+  settings: {},
+  inputs: [],
+  outputs: [],
+  _toastTimer: null,
+  _pollInterval: null,
+  _lastEvst: '00000000'
+};
+
+/* ============================================================
+   API Client (ES5, XMLHttpRequest)
+   ============================================================ */
+function apiCall(params, cb) {
+  var qs = Object.keys(params).map(function(k) {
+    return k + '=' + encodeURIComponent(params[k]);
+  }).join('&');
+  var xhr = new XMLHttpRequest();
+  xhr.timeout = 5000;
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) cb(null, xhr.responseText);
+      else cb('HTTP ' + xhr.status, null);
+    }
+  };
+  xhr.ontimeout = function() { cb('timeout', null); };
+  xhr.open('GET', APP.baseUrl + '/?' + qs, true);
+  xhr.send();
+}
+
+function apiGetIO(cb) {
+  apiCall({ e: 'io', action: 'get', password: APP.password }, function(err, data) {
+    if (err) return cb(null);
+    try { cb(JSON.parse(data)); } catch(ex) { cb(null); }
+  });
+}
+
+function apiGetAllSettings(cb) {
+  apiCall({ e: 'w', action: 'get', password: APP.password }, function(err, data) {
+    if (err) return cb(null);
+    try { cb(JSON.parse(data)); } catch(ex) { cb(null); }
+  });
+}
+
+function apiSet(name, value, cb) {
+  apiCall({ e: 'v', action: 'set', variable: name, value: value, password: APP.password }, function(err) {
+    cb(!err);
+  });
+}
+
+function apiSetEvent(idx, st, cb) {
+  apiCall({ e: 'io', action: 'set_event', idx: idx, st: st, password: APP.password }, function(err, data) {
+    if (err) return cb(false, null);
+    try { cb(true, JSON.parse(data)); } catch(ex) { cb(true, null); }
+  });
+}
+
+function apiSetOut(idx, val, cb) {
+  apiCall({ e: 'io', action: 'set_out', idx: idx, val: val, password: APP.password }, function(err) {
+    cb(!err);
+  });
+}
+
+function apiGetLog(offset, cb) {
+  apiCall({ e: 't', action: 'rows', table: 'LOG', offset: offset || 0, password: APP.password }, function(err, data) {
+    if (err) return cb(null);
+    try { cb(JSON.parse(data)); } catch(ex) { cb(null); }
+  });
+}
+
+function apiGetInfo(cb) {
+  apiCall({ e: 'i', action: 'get', password: APP.password }, function(err, data) {
+    if (err) return cb(null);
+    try { cb(JSON.parse(data)); } catch(ex) { cb(null); }
+  });
+}
+
+/* ============================================================
+   Helpers
+   ============================================================ */
+var EVST_LABELS  = ['Chiuso', 'Allarme', 'Silenziato', 'Manutenzione', 'Disabilitato'];
+var EVST_CLASSES = ['st-ok',  'st-alarm', 'st-silenced', 'st-maintenance', 'st-disabled'];
+
+function parseInputCSV(csv) {
+  var f = (csv || '').split(',');
+  return {
+    nome:          f[0] || '',
+    nc:            f[1] || 'NO',
+    doorState:     f[2] || '0',
+    alarmOnMuted:  f[3] || 'N',
+    linkOutput:    f[4] || '0',
+    milestoneName: f[5] || '',
+    lockOnActive:  f[6] || 'Y'
+  };
+}
+
+function buildInputCSV(obj) {
+  return [obj.nome, obj.nc, obj.doorState, obj.alarmOnMuted,
+          obj.linkOutput, obj.milestoneName, obj.lockOnActive].join(',');
+}
+
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function fmtTs(d) {
+  var pad = function(n) { return String(n).padStart(2,'0'); };
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) +
+         ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+function toast(msg, isError) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = isError ? 'var(--clr-alarm)' : 'var(--clr-ok)';
+  el.style.color = '#fff';
+  clearTimeout(APP._toastTimer);
+  APP._toastTimer = setTimeout(function() { el.style.display = 'none'; }, 3000);
+}
+
+/* ============================================================
+   Confirm modal
+   ============================================================ */
+function showConfirm(msg, cb) {
+  var modal = document.getElementById('confirm-modal');
+  document.getElementById('confirm-msg').textContent = msg;
+  modal.style.display = 'flex';
+  document.getElementById('confirm-ok').onclick = function() {
+    modal.style.display = 'none';
+    cb(true);
+  };
+  document.getElementById('confirm-cancel').onclick = function() {
+    modal.style.display = 'none';
+    cb(false);
+  };
+}
+
+/* ============================================================
+   Routing
+   ============================================================ */
+function showPage(id) {
+  var pages = document.querySelectorAll('.page');
+  for (var i = 0; i < pages.length; i++) pages[i].classList.remove('active');
+  var navItems = document.querySelectorAll('.nav-item');
+  for (var j = 0; j < navItems.length; j++) navItems[j].classList.remove('active');
+  document.getElementById(id).classList.add('active');
+  var navKey = id.replace('p-', '');
+  var nav = document.getElementById('nav-' + navKey);
+  if (nav) nav.classList.add('active');
+  APP.currentPage = id;
+  if (id === 'p-dashboard')    renderDashboard(null);
+  if (id === 'p-ingressi')     renderIngressi();
+  if (id === 'p-uscite')       renderUscite();
+  if (id === 'p-rete')         renderRete();
+  if (id === 'p-integrazioni') renderIntegrazioni();
+  if (id === 'p-manutenzione') renderManutenzione(APP._lastEvst || '00000000');
+  if (id === 'p-log')          renderLog();
+}
+
+/* ============================================================
+   Login / Logout
+   ============================================================ */
+function doLogin() {
+  var pw = document.getElementById('pw-input').value;
+  apiCall({ e: 'a', action: 'get', password: pw }, function(err, data) {
+    if (err) {
+      toast('Errore di connessione', true);
+      return;
+    }
+    APP.password = pw;
+    apiGetAllSettings(function(settings) {
+      if (!settings) {
+        APP.settings = {};
+        APP.inputs = [];
+        APP.outputs = [];
+      } else {
+        APP.settings = settings;
+        APP.inputs = [];
+        for (var i = 1; i <= 8; i++) {
+          var key = 'IN0' + i;
+          APP.inputs.push(parseInputCSV(settings[key] || ''));
+        }
+        APP.outputs = [];
+        for (var j = 1; j <= 6; j++) {
+          APP.outputs.push({ name: settings['OUT' + j] || ('Uscita ' + j) });
+        }
+      }
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      var sb = document.getElementById('status-bar');
+      sb.style.display = 'flex';
+      showPage('p-dashboard');
+      startPolling();
+    });
+  });
+}
+
+function doLogout() {
+  APP.password = '';
+  clearInterval(APP._pollInterval);
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('status-bar').style.display = 'none';
+  document.getElementById('login-overlay').style.display = 'flex';
+  document.getElementById('pw-input').value = '';
+}
+
+/* ============================================================
+   Polling
+   ============================================================ */
+function startPolling() {
+  // immediate first fetch
+  apiGetIO(function(d) {
+    if (d) handleIOData(d);
+  });
+  APP._pollInterval = setInterval(function() {
+    apiGetIO(function(d) {
+      if (!d) return;
+      handleIOData(d);
+    });
+  }, 3000);
+}
+
+function handleIOData(d) {
+  APP._lastEvst = d.evst || '00000000';
+  updateStatusBar(d);
+  var active = 0;
+  for (var i = 0; i < 8; i++) {
+    var c = (d.evst || '00000000').charAt(i);
+    if (c === '1' || c === '2') active++;
+  }
+  var badge = document.getElementById('nav-badge');
+  if (badge) {
+    if (active > 0) {
+      badge.textContent = active;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+  if (APP.currentPage === 'p-dashboard')    renderDashboard(d);
+  if (APP.currentPage === 'p-manutenzione') renderManutenzione(d.evst || '00000000');
+}
+
+function updateStatusBar(d) {
+  var evst = d.evst || '00000000';
+  var out  = d.out  || [];
+  var html = '<span style="margin-right:8px;color:#718096;font-size:11px">INGRESSI</span>';
+  for (var i = 0; i < 8; i++) {
+    var ev = parseInt(evst.charAt(i)) || 0;
+    if (ev > 4) ev = 4;
+    var name = (APP.inputs[i] && APP.inputs[i].nome) ? APP.inputs[i].nome : 'IN' + (i+1);
+    html += '<span class="led ' + EVST_CLASSES[ev] + '" title="' + esc(name) + ': ' + EVST_LABELS[ev] + '"></span>';
+  }
+  html += '<span style="margin:0 12px;color:#4a5568">|</span>';
+  html += '<span style="margin-right:8px;color:#718096;font-size:11px">USCITE</span>';
+  for (var j = 0; j < 6; j++) {
+    var outName = (APP.outputs[j] && APP.outputs[j].name) ? APP.outputs[j].name : 'OUT' + (j+1);
+    html += '<span class="led ' + (out[j] ? 'st-ok' : 'st-disabled') + '" title="' + esc(outName) + ': ' + (out[j] ? 'ON' : 'OFF') + '"></span>';
+  }
+  document.getElementById('status-bar').innerHTML = html;
+}
+
+/* ============================================================
+   PAGE: Dashboard
+   ============================================================ */
+function renderDashboard(d) {
+  var evst = (d && d.evst) ? d.evst : APP._lastEvst || '00000000';
+  var out  = (d && d.out)  ? d.out  : [];
+  var html = '<div class="page-header"><div class="page-title">Dashboard</div><div class="page-sub">Stato in tempo reale</div></div>';
+
+  // Inputs grid
+  html += '<div class="card"><div class="card-header">Ingressi</div><div class="card-body">';
+  html += '<div class="db-grid">';
+  for (var i = 0; i < 8; i++) {
+    var ev = parseInt(evst.charAt(i)) || 0;
+    if (ev > 4) ev = 4;
+    var name = (APP.inputs[i] && APP.inputs[i].nome) ? APP.inputs[i].nome : 'Ingresso ' + (i+1);
+    html += '<div class="db-cell">'
+          + '<div class="db-cell-label">IN' + (i+1) + '</div>'
+          + '<div class="db-cell-name" title="' + esc(name) + '">' + esc(name) + '</div>'
+          + '<span class="badge ' + EVST_CLASSES[ev] + '">' + EVST_LABELS[ev] + '</span>'
+          + '</div>';
+  }
+  html += '</div></div></div>';
+
+  // Outputs grid
+  html += '<div class="card"><div class="card-header">Uscite</div><div class="card-body">';
+  html += '<div class="db-grid">';
+  for (var j = 0; j < 6; j++) {
+    var outName = (APP.outputs[j] && APP.outputs[j].name) ? APP.outputs[j].name : 'Uscita ' + (j+1);
+    var isOn = !!(out[j]);
+    html += '<div class="db-cell">'
+          + '<div class="db-cell-label">OUT' + (j+1) + '</div>'
+          + '<div class="db-cell-name" title="' + esc(outName) + '">' + esc(outName) + '</div>'
+          + '<span class="badge ' + (isOn ? 'st-ok' : 'st-disabled') + '">' + (isOn ? 'ON' : 'OFF') + '</span>'
+          + '</div>';
+  }
+  html += '</div></div></div>';
+
+  document.getElementById('p-dashboard').innerHTML = html;
+}
+
+/* ============================================================
+   PAGE: Ingressi
+   ============================================================ */
+var DOOR_STATE_OPTS = [
+  'Notifiche Disabilitate','Chiuso','Allarme Locale',
+  'Allarme Remoto','Acquisito','Silenziato','Manutenzione'
+];
+
+function renderIngressi() {
+  var html = '<div class="page-header"><div class="page-title">Ingressi</div><div class="page-sub">Configurazione ingressi digitali (8)</div></div>';
+  html += '<div class="card"><div class="card-header">Configurazione</div>';
+  html += '<div class="card-body" style="padding:0"><div class="table-wrap">';
+  html += '<table class="data-table" id="inputs-table">';
+  html += '<thead><tr>'
+        + '<th>#</th>'
+        + '<th>Nome</th>'
+        + '<th>Tipo (NC/NO)</th>'
+        + '<th>Stato porta</th>'
+        + '<th>Allarme su silenziato</th>'
+        + '<th>Link uscita</th>'
+        + '<th>Nome Milestone</th>'
+        + '<th>Lock su attivo</th>'
+        + '<th></th>'
+        + '</tr></thead><tbody>';
+
+  for (var i = 0; i < 8; i++) {
+    var inp = APP.inputs[i] || parseInputCSV('');
+    var idx = i;
+
+    // door state select
+    var dsOpts = '';
+    for (var d = 0; d < DOOR_STATE_OPTS.length; d++) {
+      dsOpts += '<option value="' + d + '"' + (String(d) === inp.doorState ? ' selected' : '') + '>' + DOOR_STATE_OPTS[d] + '</option>';
+    }
+
+    // link output select
+    var loOpts = '<option value="0"' + (inp.linkOutput === '0' ? ' selected' : '') + '>Nessuna</option>';
+    for (var o = 1; o <= 6; o++) {
+      var oName = (APP.outputs[o-1] && APP.outputs[o-1].name) ? APP.outputs[o-1].name : 'Uscita ' + o;
+      loOpts += '<option value="' + o + '"' + (inp.linkOutput === String(o) ? ' selected' : '') + '>OUT' + o + ' – ' + esc(oName) + '</option>';
+    }
+
+    html += '<tr>'
+          + '<td class="mono">' + (i+1) + '</td>'
+          + '<td><input type="text" value="' + esc(inp.nome) + '" id="in-nome-' + idx + '" style="width:120px"></td>'
+          + '<td><select id="in-nc-' + idx + '">'
+          +   '<option value="NO"' + (inp.nc === 'NO' ? ' selected' : '') + '>NO</option>'
+          +   '<option value="NC"' + (inp.nc === 'NC' ? ' selected' : '') + '>NC</option>'
+          + '</select></td>'
+          + '<td><select id="in-ds-' + idx + '" style="min-width:140px">' + dsOpts + '</select></td>'
+          + '<td><select id="in-am-' + idx + '">'
+          +   '<option value="Y"' + (inp.alarmOnMuted === 'Y' ? ' selected' : '') + '>Si</option>'
+          +   '<option value="N"' + (inp.alarmOnMuted !== 'Y' ? ' selected' : '') + '>No</option>'
+          + '</select></td>'
+          + '<td><select id="in-lo-' + idx + '">' + loOpts + '</select></td>'
+          + '<td><input type="text" value="' + esc(inp.milestoneName) + '" id="in-ms-' + idx + '" style="width:120px"></td>'
+          + '<td><select id="in-la-' + idx + '">'
+          +   '<option value="Y"' + (inp.lockOnActive !== 'N' ? ' selected' : '') + '>Si</option>'
+          +   '<option value="N"' + (inp.lockOnActive === 'N' ? ' selected' : '') + '>No</option>'
+          + '</select></td>'
+          + '<td><button class="btn btn-sm" onclick="saveIngresso(' + idx + ')">Salva</button></td>'
+          + '</tr>';
+  }
+
+  html += '</tbody></table></div></div></div>';
+  html += '<button class="btn" onclick="saveAllIngressi()">Salva tutti</button>';
+  document.getElementById('p-ingressi').innerHTML = html;
+}
+
+function readIngressoFromDOM(i) {
+  var g = function(id) { var el = document.getElementById(id); return el ? el.value : ''; };
+  return {
+    nome:          g('in-nome-' + i),
+    nc:            g('in-nc-'   + i),
+    doorState:     g('in-ds-'   + i),
+    alarmOnMuted:  g('in-am-'   + i),
+    linkOutput:    g('in-lo-'   + i),
+    milestoneName: g('in-ms-'   + i),
+    lockOnActive:  g('in-la-'   + i)
+  };
+}
+
+function saveIngresso(i) {
+  var obj = readIngressoFromDOM(i);
+  APP.inputs[i] = obj;
+  var key = 'IN0' + (i + 1);
+  var csv = buildInputCSV(obj);
+  apiSet(key, csv, function(ok) {
+    if (ok) toast('Ingresso ' + (i+1) + ' salvato');
+    else toast('Errore salvataggio ingresso ' + (i+1), true);
+  });
+}
+
+function saveAllIngressi() {
+  var count = 0;
+  var errors = 0;
+  var total = 8;
+  for (var i = 0; i < total; i++) {
+    (function(idx) {
+      var obj = readIngressoFromDOM(idx);
+      APP.inputs[idx] = obj;
+      var key = 'IN0' + (idx + 1);
+      var csv = buildInputCSV(obj);
+      apiSet(key, csv, function(ok) {
+        count++;
+        if (!ok) errors++;
+        if (count === total) {
+          if (errors === 0) toast('Tutti gli ingressi salvati');
+          else toast('Errore su ' + errors + ' ingressi', true);
+        }
+      });
+    })(i);
+  }
+}
+
+/* ============================================================
+   PAGE: Uscite
+   ============================================================ */
+function renderUscite() {
+  var html = '<div class="page-header"><div class="page-title">Uscite</div><div class="page-sub">Configurazione e controllo relè (6)</div></div>';
+  html += '<div class="card"><div class="card-header">Relè</div>';
+  html += '<div class="card-body" style="padding:0">';
+  html += '<table class="data-table">';
+  html += '<thead><tr><th>#</th><th>Nome</th><th>Stato</th><th>Controllo</th></tr></thead><tbody>';
+
+  for (var j = 0; j < 6; j++) {
+    var outName = (APP.outputs[j] && APP.outputs[j].name) ? APP.outputs[j].name : 'Uscita ' + (j+1);
+    html += '<tr>'
+          + '<td class="mono">OUT' + (j+1) + '</td>'
+          + '<td><input type="text" value="' + esc(outName) + '" id="out-name-' + j + '" style="width:160px" onchange="saveOutputName(' + j + ')"></td>'
+          + '<td><span id="out-state-' + j + '" class="badge st-disabled">—</span></td>'
+          + '<td style="display:flex;gap:8px;padding:9px 12px">'
+          +   '<button class="btn btn-sm btn-ok" onclick="ctrlOut(' + j + ',1)">ON</button>'
+          +   '<button class="btn btn-sm btn-danger" onclick="ctrlOut(' + j + ',0)">OFF</button>'
+          +   '<button class="btn btn-sm btn-secondary" onclick="pulseOut(' + j + ')">Impulso</button>'
+          + '</td>'
+          + '</tr>';
+  }
+
+  html += '</tbody></table></div></div>';
+  document.getElementById('p-uscite').innerHTML = html;
+
+  // refresh states
+  apiGetIO(function(d) {
+    if (!d) return;
+    for (var j = 0; j < 6; j++) {
+      var el = document.getElementById('out-state-' + j);
+      if (el) {
+        var isOn = !!(d.out && d.out[j]);
+        el.className = 'badge ' + (isOn ? 'st-ok' : 'st-disabled');
+        el.textContent = isOn ? 'ON' : 'OFF';
+      }
+    }
+  });
+}
+
+function saveOutputName(j) {
+  var el = document.getElementById('out-name-' + j);
+  if (!el) return;
+  var name = el.value;
+  APP.outputs[j] = APP.outputs[j] || {};
+  APP.outputs[j].name = name;
+  var key = 'OUT' + (j + 1);
+  apiSet(key, name, function(ok) {
+    if (ok) toast('Uscita ' + (j+1) + ' rinominata');
+    else toast('Errore rinomina uscita', true);
+  });
+}
+
+function ctrlOut(j, val) {
+  apiSetOut(j, val, function(ok) {
+    if (!ok) { toast('Errore controllo uscita', true); return; }
+    var el = document.getElementById('out-state-' + j);
+    if (el) {
+      el.className = 'badge ' + (val ? 'st-ok' : 'st-disabled');
+      el.textContent = val ? 'ON' : 'OFF';
+    }
+    toast('Uscita ' + (j+1) + ' ' + (val ? 'attivata' : 'disattivata'));
+  });
+}
+
+function pulseOut(j) {
+  ctrlOut(j, 1);
+  setTimeout(function() { ctrlOut(j, 0); }, 2000);
+}
+
+/* ============================================================
+   PAGE: Rete
+   ============================================================ */
+function renderRete() {
+  var s = APP.settings;
+  var html = '<div class="page-header"><div class="page-title">Rete</div><div class="page-sub">Configurazione Ethernet</div></div>';
+  html += '<div class="card"><div class="card-header">Ethernet</div><div class="card-body">';
+
+  html += '<div class="form-row"><label>Nome dispositivo</label>'
+        + '<input type="text" id="net-hostname" value="' + esc(s.HOSTNAME || '') + '"></div>';
+
+  var dhcp = s.DHCP || '0';
+  html += '<div class="form-row"><label>DHCP</label>'
+        + '<select id="net-dhcp" onchange="toggleDHCPRows()">'
+        + '<option value="0"' + (dhcp === '0' ? ' selected' : '') + '>Disabilitato</option>'
+        + '<option value="1"' + (dhcp === '1' ? ' selected' : '') + '>Abilitato</option>'
+        + '</select></div>';
+
+  var manualOpts = [
+    ['net-ip',  'Indirizzo IP',  s.IP   || ''],
+    ['net-gw',  'Gateway',       s.GW   || ''],
+    ['net-nm',  'Subnet mask',   s.NM   || ''],
+    ['net-dns', 'Server DNS',    s.DNS  || ''],
+    ['net-ntp', 'Server NTP',    s.NTP  || '']
+  ];
+  for (var m = 0; m < manualOpts.length; m++) {
+    var mo = manualOpts[m];
+    html += '<div class="form-row" id="row-' + mo[0] + '"><label>' + mo[1] + '</label>'
+          + '<input type="text" id="' + mo[0] + '" value="' + esc(mo[2]) + '"></div>';
+  }
+
+  html += '<div style="margin-top:16px"><button class="btn" onclick="saveRete()">Salva</button></div>';
+  html += '</div></div>';
+  document.getElementById('p-rete').innerHTML = html;
+  toggleDHCPRows();
+}
+
+function toggleDHCPRows() {
+  var sel = document.getElementById('net-dhcp');
+  if (!sel) return;
+  var manual = ['row-net-ip','row-net-gw','row-net-nm','row-net-dns'];
+  var disabled = sel.value === '1';
+  for (var m = 0; m < manual.length; m++) {
+    var row = document.getElementById(manual[m]);
+    if (row) {
+      row.style.opacity = disabled ? '0.4' : '1';
+      var inp = row.querySelector('input');
+      if (inp) inp.disabled = disabled;
+    }
+  }
+}
+
+function saveRete() {
+  var fields = [
+    ['HOSTNAME', 'net-hostname'],
+    ['DHCP',     'net-dhcp'],
+    ['IP',       'net-ip'],
+    ['GW',       'net-gw'],
+    ['NM',       'net-nm'],
+    ['DNS',      'net-dns'],
+    ['NTP',      'net-ntp']
+  ];
+  var count = 0;
+  var errors = 0;
+  var total = fields.length;
+  for (var f = 0; f < total; f++) {
+    (function(key, elId) {
+      var el = document.getElementById(elId);
+      var val = el ? el.value : '';
+      apiSet(key, val, function(ok) {
+        count++;
+        if (!ok) errors++;
+        if (count === total) {
+          if (errors === 0) toast('Rete salvata. Riavvio necessario.');
+          else toast('Errore salvataggio rete', true);
+        }
+      });
+    })(fields[f][0], fields[f][1]);
+  }
+}
+
+/* ============================================================
+   PAGE: Integrazioni
+   ============================================================ */
+function renderIntegrazioni() {
+  var s = APP.settings;
+  var html = '<div class="page-header"><div class="page-title">Integrazioni</div><div class="page-sub">Milestone VMS e Xovis</div></div>';
+
+  // Milestone
+  html += '<div class="card"><div class="card-header">Milestone VMS — Connessione server</div><div class="card-body">';
+  html += '<div class="form-row"><label>Indirizzo IP server</label><input type="text" id="ms-ip" value="' + esc(s.MS_IP || '') + '" placeholder="0.0.0.0"></div>';
+  html += '<div class="form-row"><label>Porta</label><input type="number" id="ms-port" value="' + esc(s.MS_PORT || '1238') + '"></div>';
+  html += '<div class="form-row"><label>Username</label><input type="text" id="ms-user" value="' + esc(s.MS_USER || '') + '" placeholder="admin"></div>';
+  html += '<div class="form-row"><label>Password</label><input type="password" id="ms-pass" value="' + esc(s.MS_PASS || '') + '" placeholder="••••••••"></div>';
+  html += '<div style="margin-top:16px"><button class="btn" onclick="saveMilestone()">Salva</button></div>';
+  html += '</div></div>';
+
+  // Xovis
+  html += '<div class="card"><div class="card-header">Xovis — Parametri people counter</div><div class="card-body">';
+  html += '<div class="form-row"><label>Porta API</label><input type="number" id="xv-port" value="' + esc(s.XV_PORT || '4321') + '"></div>';
+
+  var xvDirs = ['forward','backward','both'];
+  var xvSel = '';
+  for (var d = 0; d < xvDirs.length; d++) {
+    xvSel += '<option value="' + xvDirs[d] + '"' + ((s.XV_DIR || 'forward') === xvDirs[d] ? ' selected' : '') + '>' + xvDirs[d] + '</option>';
+  }
+  html += '<div class="form-row"><label>Direzione attraversamento</label><select id="xv-dir">' + xvSel + '</select></div>';
+  html += '<div style="margin-top:16px"><button class="btn" onclick="saveXovis()">Salva</button></div>';
+  html += '</div></div>';
+
+  document.getElementById('p-integrazioni').innerHTML = html;
+}
+
+function saveMilestone() {
+  var fields = [['MS_IP','ms-ip'],['MS_PORT','ms-port'],['MS_USER','ms-user'],['MS_PASS','ms-pass']];
+  var count = 0; var errors = 0; var total = fields.length;
+  for (var f = 0; f < total; f++) {
+    (function(key, elId) {
+      var el = document.getElementById(elId);
+      apiSet(key, el ? el.value : '', function(ok) {
+        count++; if (!ok) errors++;
+        if (count === total) {
+          if (errors === 0) toast('Milestone salvato');
+          else toast('Errore salvataggio Milestone', true);
+        }
+      });
+    })(fields[f][0], fields[f][1]);
+  }
+}
+
+function saveXovis() {
+  var fields = [['XV_PORT','xv-port'],['XV_DIR','xv-dir']];
+  var count = 0; var errors = 0; var total = fields.length;
+  for (var f = 0; f < total; f++) {
+    (function(key, elId) {
+      var el = document.getElementById(elId);
+      apiSet(key, el ? el.value : '', function(ok) {
+        count++; if (!ok) errors++;
+        if (count === total) {
+          if (errors === 0) toast('Xovis salvato');
+          else toast('Errore salvataggio Xovis', true);
+        }
+      });
+    })(fields[f][0], fields[f][1]);
+  }
+}
+
+/* ============================================================
+   PAGE: Manutenzione
+   ============================================================ */
+function renderManutenzione(evst) {
+  var s = APP.settings;
+  evst = evst || '00000000';
+
+  var html = '<div class="page-header"><div class="page-title">Manutenzione</div><div class="page-sub">Gestione sistema e stato ingressi</div></div>';
+
+  // Device info strip
+  html += '<div class="info-strip">';
+  html += 'Firmware: <span>' + esc(s.FW_VER || '—') + '</span>';
+  html += ' &nbsp;|&nbsp; Build: <span>' + esc(s.FW_BUILD || '—') + '</span>';
+  html += ' &nbsp;|&nbsp; UUID: <span>' + esc(s.UUID || '—') + '</span>';
+  html += '</div>';
+
+  // Stato ingressi per manutenzione (EVST)
+  html += '<div class="card"><div class="card-header">Stato ingressi</div><div class="card-body">';
+  html += '<table class="data-table"><thead><tr><th>#</th><th>Nome</th><th>Stato</th><th>Azione</th></tr></thead><tbody>';
+  for (var i = 0; i < 8; i++) {
+    var ev = parseInt(evst.charAt(i)) || 0;
+    if (ev > 4) ev = 4;
+    var name = (APP.inputs[i] && APP.inputs[i].nome) ? APP.inputs[i].nome : 'Ingresso ' + (i+1);
+    html += '<tr>'
+          + '<td class="mono">' + (i+1) + '</td>'
+          + '<td>' + esc(name) + '</td>'
+          + '<td><span class="badge ' + EVST_CLASSES[ev] + '">' + EVST_LABELS[ev] + '</span></td>'
+          + '<td style="display:flex;gap:6px;padding:9px 12px">';
+    // buttons for state transitions
+    if (ev === 1) { // alarm -> silence
+      html += '<button class="btn btn-sm btn-secondary" onclick="setEvst(' + i + ',2)">Silenzia</button>';
+    }
+    if (ev === 1 || ev === 2) { // alarm/silenced -> maintenance
+      html += '<button class="btn btn-sm" onclick="setEvst(' + i + ',3)">Manutenzione</button>';
+    }
+    if (ev === 3 || ev === 4) { // maint/disabled -> ok
+      html += '<button class="btn btn-sm btn-ok" onclick="setEvst(' + i + ',0)">Ripristina</button>';
+    }
+    if (ev !== 4) {
+      html += '<button class="btn btn-sm btn-danger" onclick="setEvst(' + i + ',4)">Disabilita</button>';
+    }
+    html += '</td></tr>';
+  }
+  html += '</tbody></table></div></div>';
+
+  // App type
+  var appTypes = ['AllFunction','DoorAlarms','Tvcc','ControFlusso'];
+  var atOpts = '';
+  for (var at = 0; at < appTypes.length; at++) {
+    atOpts += '<option value="' + appTypes[at] + '"' + ((s.APP_TYPE || 'AllFunction') === appTypes[at] ? ' selected' : '') + '>' + appTypes[at] + '</option>';
+  }
+  html += '<div class="card"><div class="card-header">Tipo applicazione</div><div class="card-body">';
+  html += '<div class="form-row"><label>Tipo</label><select id="app-type-sel" style="max-width:220px">' + atOpts + '</select></div>';
+  html += '<div style="margin-top:14px"><button class="btn" onclick="saveAppType()">Salva</button></div>';
+  html += '</div></div>';
+
+  // Actions grid
+  html += '<div class="maint-grid">';
+
+  html += '<div class="maint-card">'
+        + '<div class="maint-title">Riavvio dispositivo</div>'
+        + '<div style="font-size:12px;color:#718096">Riavvia il sistema operativo del dispositivo.</div>'
+        + '<button class="btn btn-danger" onclick="doReboot()">Riavvia</button>'
+        + '</div>';
+
+  html += '<div class="maint-card">'
+        + '<div class="maint-title">Reset di fabbrica</div>'
+        + '<div style="font-size:12px;color:#718096">Tutti i dati di configurazione saranno persi.</div>'
+        + '<button class="btn btn-danger" onclick="doFactoryReset()">Reset fabbrica</button>'
+        + '</div>';
+
+  html += '<div class="maint-card">'
+        + '<div class="maint-title">Modifica password</div>'
+        + '<div style="display:flex;gap:8px;align-items:center">'
+        + '<input type="password" id="new-pw" placeholder="Nuova password" style="flex:1;max-width:200px">'
+        + '<button class="btn btn-sm" onclick="changePassword()">Salva</button>'
+        + '</div>'
+        + '</div>';
+
+  html += '<div class="maint-card">'
+        + '<div class="maint-title">Codice licenza</div>'
+        + '<div class="form-row" style="border:none;padding:0;grid-template-columns:90px 1fr">'
+        + '<label>Licenza</label><input type="text" id="lic-code" value="' + esc(s.LIC_CODE || '') + '" placeholder="XXXX-XXXX-XXXX-XXXX">'
+        + '</div>'
+        + '<div class="form-row" style="border:none;padding:0;grid-template-columns:90px 1fr">'
+        + '<label>UID</label><input type="text" value="' + esc(s.UUID || '—') + '" readonly style="color:#718096">'
+        + '</div>'
+        + '<button class="btn btn-sm" onclick="saveLicenza()">Salva</button>'
+        + '</div>';
+
+  html += '</div>'; // maint-grid
+
+  // Informazioni
+  html += '<div class="card"><div class="card-header">Informazioni dispositivo</div><div class="card-body">';
+  var infoFields = [
+    ['DEV_NAME',     'Nome dispositivo',   s.DEV_NAME   || ''],
+    ['OWNER_NAME',   'Nome proprietario',  s.OWNER_NAME || ''],
+    ['RESEL_NAME',   'Nome reseller',      s.RESEL_NAME || ''],
+    ['RESEL_EMAIL',  'Email reseller',     s.RESEL_EMAIL|| ''],
+    ['RESEL_PHONE',  'Telefono reseller',  s.RESEL_PHONE|| '']
+  ];
+  for (var fi = 0; fi < infoFields.length; fi++) {
+    var ff = infoFields[fi];
+    html += '<div class="form-row"><label>' + ff[1] + '</label><input type="text" id="info-' + ff[0] + '" value="' + esc(ff[2]) + '"></div>';
+  }
+  html += '<div style="margin-top:16px"><button class="btn" onclick="saveInfo()">Salva</button></div>';
+  html += '</div></div>';
+
+  document.getElementById('p-manutenzione').innerHTML = html;
+}
+
+function setEvst(idx, st) {
+  apiSetEvent(idx, st, function(ok, d) {
+    if (!ok) { toast('Errore impostazione stato', true); return; }
+    if (d && d.evst) APP._lastEvst = d.evst;
+    renderManutenzione(APP._lastEvst);
+    toast('Stato ingresso ' + (idx+1) + ' aggiornato');
+  });
+}
+
+function saveAppType() {
+  var el = document.getElementById('app-type-sel');
+  if (!el) return;
+  apiSet('APP_TYPE', el.value, function(ok) {
+    if (ok) toast('Tipo applicazione salvato');
+    else toast('Errore salvataggio', true);
+  });
+}
+
+function doReboot() {
+  showConfirm('Riavviare il dispositivo?', function(yes) {
+    if (!yes) return;
+    apiCall({ e: 'sys', action: 'reboot', password: APP.password }, function() {
+      toast('Riavvio in corso...');
+    });
+  });
+}
+
+function doFactoryReset() {
+  showConfirm('ATTENZIONE: Eseguire il reset di fabbrica? Tutti i dati saranno persi!', function(yes) {
+    if (!yes) return;
+    apiCall({ e: 'sys', action: 'factory_reset', password: APP.password }, function() {
+      toast('Reset eseguito', true);
+    });
+  });
+}
+
+function changePassword() {
+  var el = document.getElementById('new-pw');
+  if (!el || !el.value) { toast('Inserire la nuova password', true); return; }
+  apiSet('PASSWORD', el.value, function(ok) {
+    if (ok) {
+      APP.password = el.value;
+      el.value = '';
+      toast('Password aggiornata');
+    } else {
+      toast('Errore aggiornamento password', true);
+    }
+  });
+}
+
+function saveLicenza() {
+  var el = document.getElementById('lic-code');
+  if (!el) return;
+  apiSet('LIC_CODE', el.value, function(ok) {
+    if (ok) toast('Licenza salvata');
+    else toast('Errore salvataggio licenza', true);
+  });
+}
+
+function saveInfo() {
+  var keys = ['DEV_NAME','OWNER_NAME','RESEL_NAME','RESEL_EMAIL','RESEL_PHONE'];
+  var count = 0; var errors = 0; var total = keys.length;
+  for (var k = 0; k < total; k++) {
+    (function(key) {
+      var el = document.getElementById('info-' + key);
+      apiSet(key, el ? el.value : '', function(ok) {
+        count++; if (!ok) errors++;
+        if (count === total) {
+          if (errors === 0) toast('Informazioni salvate');
+          else toast('Errore salvataggio informazioni', true);
+        }
+      });
+    })(keys[k]);
+  }
+}
+
+/* ============================================================
+   PAGE: Log
+   ============================================================ */
+var LOG_OFFSET = 0;
+var LOG_PAGE_SIZE = 50;
+
+function renderLog() {
+  var html = '<div class="page-header"><div class="page-title">Log eventi</div><div class="page-sub">Registro eventi del dispositivo</div></div>';
+  html += '<div class="card"><div class="card-header">'
+        + '<span>Registro eventi</span>'
+        + '<button class="btn btn-sm btn-danger" onclick="clearLogUI()">Cancella log</button>'
+        + '</div>';
+  html += '<div class="card-body" style="padding:0">';
+  html += '<table class="data-table mono"><thead><tr><th style="width:160px">Timestamp</th><th>Ingresso</th><th>Evento</th><th>Dettaglio</th></tr></thead>';
+  html += '<tbody id="log-body"><tr><td colspan="4" style="text-align:center;color:#718096;padding:20px">Caricamento...</td></tr></tbody></table>';
+  html += '</div></div>';
+  html += '<div style="display:flex;gap:10px;margin-top:12px">'
+        + '<button class="btn btn-secondary btn-sm" id="log-prev" onclick="logPrev()" disabled>Precedente</button>'
+        + '<button class="btn btn-secondary btn-sm" id="log-next" onclick="logNext()">Successivo</button>'
+        + '</div>';
+
+  document.getElementById('p-log').innerHTML = html;
+  LOG_OFFSET = 0;
+  loadLogPage();
+}
+
+function loadLogPage() {
+  apiGetLog(LOG_OFFSET, function(rows) {
+    var tbody = document.getElementById('log-body');
+    if (!tbody) return;
+    if (!rows || !rows.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#718096;padding:20px">Nessun evento</td></tr>';
+      return;
+    }
+    var html = '';
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r];
+      var evClass = 'log-info';
+      var evText = row.ev || row.event || '';
+      if (evText.toLowerCase().indexOf('alarm') >= 0) evClass = 'log-alarm';
+      else if (evText.toLowerCase().indexOf('ok') >= 0 || evText.toLowerCase().indexOf('chius') >= 0) evClass = 'log-ok';
+      else if (evText.toLowerCase().indexOf('silen') >= 0) evClass = 'log-silenced';
+      else if (evText.toLowerCase().indexOf('manu') >= 0) evClass = 'log-maint';
+      html += '<tr>'
+            + '<td class="log-ts">' + esc(row.ts || row.timestamp || '') + '</td>'
+            + '<td>' + esc(row.port || row.input || '') + '</td>'
+            + '<td class="' + evClass + '">' + esc(evText) + '</td>'
+            + '<td>' + esc(row.detail || '') + '</td>'
+            + '</tr>';
+    }
+    tbody.innerHTML = html;
+
+    var prevBtn = document.getElementById('log-prev');
+    var nextBtn = document.getElementById('log-next');
+    if (prevBtn) prevBtn.disabled = LOG_OFFSET === 0;
+    if (nextBtn) nextBtn.disabled = rows.length < LOG_PAGE_SIZE;
+  });
+}
+
+function logNext() {
+  LOG_OFFSET += LOG_PAGE_SIZE;
+  loadLogPage();
+}
+
+function logPrev() {
+  LOG_OFFSET = Math.max(0, LOG_OFFSET - LOG_PAGE_SIZE);
+  loadLogPage();
+}
+
+function clearLogUI() {
+  showConfirm('Eliminare tutti i log dal dispositivo?', function(yes) {
+    if (!yes) return;
+    apiCall({ e: 't', action: 'clear', table: 'LOG', password: APP.password }, function(err) {
+      if (!err) {
+        toast('Log eliminati');
+        renderLog();
+      } else {
+        toast('Errore eliminazione log', true);
+      }
+    });
+  });
+}
+
+/* ============================================================
+   Init
+   ============================================================ */
+(function init() {
+  // Hide app and status bar on load; login overlay is shown by default
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('status-bar').style.display = 'none';
+  document.getElementById('login-overlay').style.display = 'flex';
+})();
+</script>
+</body>
+</html>
